@@ -59,6 +59,31 @@ jobs:
           cmake -S c-interpreter -B c-interpreter/build -DCMAKE_BUILD_TYPE=Release
           cmake --build c-interpreter/build --config Release
 
+      # --- 원인 좁히기 (한동안만 둡니다) ---------------------------------
+      # CI 로그와 아티팩트는 저장소 관리자만 받을 수 있어서, 밖에서는 **단계별
+      # 성공/실패**만 보입니다. 그래서 의심 가는 곳을 따로 단계로 떼어 둡니다 —
+      # 어느 단계가 빨간불인지만 봐도 어디가 깨졌는지 알 수 있습니다.
+      # 우분투·맥만 깨지고 윈도우는 통과하므로, 가장 유력한 것은 **SQLite 를
+      # FFI 로 부르는 길**입니다 (지금껏 SQLite 가 없는 곳에서만 POSIX 를 봤습니다).
+      - name: 진단 A - 언어 단위시험만 (ffi/sqlite 포함)
+        if: runner.os != 'Windows'
+        continue-on-error: true
+        run: ./c-interpreter/bin/lumi test tests/lang
+
+      - name: 진단 B - SQLite 예제만
+        if: runner.os != 'Windows'
+        continue-on-error: true
+        run: |
+          ./c-interpreter/bin/lumi examples/database.lumi | tee /tmp/db.txt
+          grep -q "^Error:" /tmp/db.txt && exit 1 || exit 0
+
+      - name: 진단 C - SQLite 라이브러리가 있나
+        if: runner.os != 'Windows'
+        continue-on-error: true
+        run: ./c-interpreter/bin/lumi -c 'bring sqlite
+print(sqlite.version())'
+      # --- 여기까지 ------------------------------------------------------
+
       - name: 시험 (POSIX)
         if: runner.os != 'Windows'
         run: ./tests/run.sh
