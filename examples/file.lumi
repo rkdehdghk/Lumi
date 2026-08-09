@@ -1,0 +1,165 @@
+// Text Files (텍스트 파일) in Lumi
+//
+//   read([인코딩,] 파일이름)          파일을 통째로 읽어 글자로
+//   write([인코딩,] 내용, 파일이름)   새로 쓰기 (있던 내용은 지워집니다)
+//   append([인코딩,] 내용, 파일이름)  뒤에 이어 쓰기
+//   isfile(파일이름)                 그런 파일이 있는지
+//   newfile(파일이름)                빈 파일 만들기 (있으면 그대로 둠)
+//   delfile(파일이름)                파일 지우기
+//   renamefile(새 이름, 파일이름)     파일 이름 바꾸기
+//   movefile(폴더, 파일이름)          파일을 그 폴더로 옮기기
+//
+// 열어 두고 쓰려면 (큰 파일을 한 줄씩 · 여러 번 나눠 쓰기):
+//   open([인코딩,] [read/write/append,] 파일이름)   열기
+//   readline(파일)          한 줄 읽기 (줄바꿈은 떼고)
+//   writeline(내용, 파일)   한 줄 쓰기 (줄바꿈을 붙여서)
+//   isend(파일) · read(파일) · write(내용, 파일) · close(파일)
+//
+// 다른 함수들과 같은 규칙입니다: '어떻게'(인코딩)가 앞, 다룰 파일이 마지막.
+//
+// 적는 규칙: 주소는 작은따옴표 '...', 사람에게 보여 줄 글자는 큰따옴표 "..." 입니다.
+// 이 예제는 자기 폴더(examples/)에 파일을 만들었다가 맨 끝에서 다시 지웁니다.
+
+print("=== 쓰고 읽기 ===")
+val 몇글자 = write("첫 줄\n둘째 줄\n", 'note.txt')
+print("쓴 글자 수:", 몇글자)                 // 9
+print(read('note.txt'))                      // 첫 줄 / 둘째 줄
+
+print("")
+print("=== 이어 쓰기 ===")
+append("셋째 줄\n", 'note.txt')
+print(read('note.txt'))                      // 세 줄이 모두 나옵니다
+
+print("")
+print("=== 파일이 있는지 ===")
+print(isfile('note.txt'))                    // true
+print(isfile('없는파일.txt'))                 // false
+
+print("")
+print("=== 다른 폴더의 파일 (이름 자리에 경로 적기) ===")
+// 이름만 적으면 이 .lumi 가 있는 폴더가 기준입니다. 경로를 적으면 다른 폴더도 됩니다.
+print(isfile('../README.md'))                // true    .. 는 한 폴더 위
+print(isfile('../libraries/math.lumi'))      // true    위로 갔다 옆 폴더로
+print(read('../examples/note.txt') == read('note.txt'))   // true  돌아서 온 같은 파일
+// 통째로 적은 경로도 그대로 씁니다. 주소는 작은따옴표라서 \ 를 손댈 것이 없습니다:
+print(isfile('C:\Windows\notepad.exe'))      // true   ' ' 안에서는 \ 가 그냥 \
+// 큰따옴표로 적었다면 \n 이 줄바꿈이 되어 오류로 알려 줍니다 (strings.lumi 참고).
+
+print("")
+print("=== 줄로 나누어 다루기 ===")
+// 파일을 읽으면 그냥 글자라서, 여느 문자열처럼 다루면 됩니다.
+val 줄들 = split("\n", read('note.txt'))
+erase(len(줄들) - 1, 줄들)                    // 맨 끝 줄바꿈이 남긴 빈 칸 지우기
+print("줄 수:", len(줄들))                    // 3
+for 줄 in 줄들:
+    print("-", 줄)
+
+print("")
+print("=== 표를 파일로 (join 과 짝) ===")
+val 이름들 = ["보리", "초코", "루미"]
+write(join("\n", 이름들), '이름표.txt')
+print(read('이름표.txt'))
+
+print("")
+print("=== 인코딩 골라 쓰기 ===")
+// 안 적으면 언제나 "utf-8" 입니다. 옛 윈도우 프로그램이 만든 파일은 cp949 인 경우가 많아요.
+// 인코딩은 주소가 아니라 '어떻게' 이므로 큰따옴표로 적습니다.
+write("cp949", "한글 파일\n", 'note.txt')
+print(read("cp949", 'note.txt'))             // 한글 파일
+// print(read('note.txt'))                   // 오류: utf-8 로는 읽을 수 없는 바이트
+
+print("")
+print("=== 만들기 (newfile) ===")
+val 기록 = '기록.txt'
+print(newfile(기록))                         // true    빈 파일을 새로 만들었습니다
+append("첫 기록\n", 기록)
+print(newfile(기록))                         // false   이미 있어서 그대로 둡니다
+append("한 줄 더\n", 기록)
+print(read(기록), keep(""))                  // 두 줄 다 살아 있습니다
+// newfile 은 있는 파일을 건드리지 않습니다.
+// write("", 기록) 은 반대로 내용을 지워 버리니 조심하세요.
+
+print("")
+print("=== 폴더 만들기 및 지우기 (newdir · deldir) ===")
+val 연습폴더 = '연습폴더'
+print(newdir(연습폴더))                      // true    새 폴더를 만들었습니다
+print(newdir(연습폴더))                      // false   이미 있어서 그대로 둡니다
+newfile(연습폴더 + '/안속.txt')
+print(deldir(연습폴더))                      // true    속에 파일이 있어도 깔끔히 지웁니다
+
+print("")
+print("=== 열어 두고 한 줄씩 쓰기 (open · writeline · close) ===")
+// 여는 방법(read / write / append)은 따옴표 없이 적습니다. 안 적으면 읽기입니다.
+val 일기 = open(write, '일기.txt')
+print(type(일기))                            // file
+print(writeline("월요일: 비", 일기))          // 7   붙인 줄바꿈까지 셉니다
+writeline("화요일: 맑음", 일기)
+writeline("수요일: 눈", 일기)
+print(close(일기))                           // true
+print(close(일기))                           // false   이미 닫혔습니다
+
+print("")
+print("=== 한 줄씩 읽기 (readline · isend) ===")
+val 읽기 = open('일기.txt')
+while not isend(읽기):
+    print("-", readline(읽기))               // 줄바꿈이 빠진 '그 줄의 내용'
+close(읽기)
+
+print("")
+print("=== 한 줄 읽어 한 줄 쓰기 (둘은 정확히 반대) ===")
+val 안 = open('일기.txt')
+val 밖 = open(write, '일기복사.txt')
+while not isend(안):
+    writeline(readline(안), 밖)
+close(안)
+close(밖)
+print(read('일기복사.txt') == read('일기.txt'))   // true   그대로 옮겨졌습니다
+delfile('일기복사.txt')
+
+print("")
+print("=== 한 줄만 읽고, 나머지는 통째로 ===")
+val 반쯤 = open(read, '일기.txt')
+print("첫 줄만:", readline(반쯤))
+print("남은 것:")
+print(read(반쯤), keep(""))                  // 열어 둔 파일에는 read(파일)
+print("끝인가?", isend(반쯤))                 // true
+close(반쯤)
+
+print("")
+print("=== 이어 쓰기로 열기 (append) ===")
+val 더 = open(append, '일기.txt')
+writeline("목요일: 흐림", 더)
+close(더)
+print("줄 수:", len(split("\n", read('일기.txt'))) - 1)   // 4
+delfile('일기.txt')
+
+print("")
+print("=== 이름 바꾸기 (renamefile) ===")
+write("이름표 연습\n", '옛이름.txt')
+print(renamefile('새이름.txt', '옛이름.txt'))   // true    새 이름이 앞입니다
+print(isfile('옛이름.txt'), isfile('새이름.txt'))  // false true
+print(read('새이름.txt'))                       // 내용은 그대로
+delfile('새이름.txt')
+
+print("")
+print("=== 다른 폴더로 옮기기 (movefile) ===")
+write("옮겨 다니는 파일\n", '짐.txt')
+print(movefile('..', '짐.txt'))              // true    폴더가 앞입니다
+print(isfile('짐.txt'), isfile('../짐.txt'))  // false true   이름은 그대로입니다
+print(read('../짐.txt'))                     // 내용도 그대로
+print(movefile('.', '../짐.txt'))            // true    다시 데려옵니다
+delfile('짐.txt')
+
+print("")
+print("=== 지우기 (delfile) ===")
+print(delfile(기록))                         // true
+print(isfile(기록))                          // false
+// 없는 파일을 지우면 오류입니다. 모를 때는 먼저 물어봅니다:
+if isfile(기록):
+    delfile(기록)
+print("지운 파일은 휴지통에 가지 않습니다.")
+
+// 이 예제가 만든 나머지도 치웁니다
+delfile('note.txt')
+delfile('이름표.txt')
+print("치우고 나니 남은 것:", isfile('note.txt'), isfile('이름표.txt'))

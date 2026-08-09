@@ -1,0 +1,204 @@
+// 남의 C 라이브러리 불러 쓰기 (ccall) 와 그것을 감싼 sqlite 라이브러리.
+//
+// SQLite 가 없는 곳(최소 컨테이너 등)에서는 **시험을 건너뜁니다.** 없다고 실패로
+// 적으면, 진짜 깨진 것과 그냥 안 깔린 것을 구별할 수 없게 됩니다.
+
+// --- 기억 장치 다루기: 라이브러리 없이도 되는 것들 --------------------------
+
+test "cbuf 는 0 으로 채워 준다":
+    val p = cbuf(16)
+    assertsame(0, cget("l", p))
+    assertsame(0, cget("i", p + 8))
+    cfree(p)
+
+test "cput 한 것을 cget 으로 되찾는다":
+    val p = cbuf(32)
+    cput(-42, "i", p)
+    assertsame(-42, cget("i", p))
+    cput(9007199254740993, "l", p + 8)
+    assertsame(9007199254740993, cget("l", p + 8))
+    cput(3.5, "d", p + 16)
+    assertsame(3.5, cget("d", p + 16))
+    cput(200, "c", p + 24)
+    assertsame(-56, cget("c", p + 24))          // 한 바이트는 부호가 있습니다
+    cfree(p)
+
+test "cfree 는 cbuf 가 준 자리만 받는다":
+    val 났나 = false
+    try:
+        cfree(12345)
+    catch ValueError e:
+        났나 = true
+    assert(났나, "아무 정수나 cfree 로 통과했습니다 - 그러면 그 자리에서 죽습니다")
+
+test "두 번 놓아주면 알려 준다":
+    val p = cbuf(8)
+    cfree(p)
+    val 났나 = false
+    try:
+        cfree(p)
+    catch ValueError e:
+        났나 = true
+    assert(났나)
+
+test "없는 라이브러리는 FileNotFound":
+    val 났나 = false
+    try:
+        cload("이런라이브러리는_절대_없습니다_12345")
+    catch FileNotFound e:
+        났나 = true
+    assert(났나)
+
+
+// --- SQLite 로 진짜 부르기 --------------------------------------------------
+
+// 이 컴퓨터에 SQLite 가 있습니까?
+func _있나():
+    try:
+        bring sqlite
+        return true
+    catch e:
+        return false
+
+val 쓸수있다 = _있나()
+
+test "SQLite 가 있으면 판 번호를 준다":
+    if not 쓸수있다:
+        print("  (SQLite 가 없어 건너뜁니다)")
+        return
+    bring sqlite
+    val v = sqlite.version()
+    assert(hasmatch("^[0-9]+\\.[0-9]+", v), "판 번호 모양이 이상합니다: " + v)
+
+test "넣고 꺼내기 — 자료형이 그대로 돌아온다":
+    if not 쓸수있다:
+        return
+    bring sqlite
+    val db = sqlite.open(":memory:")
+    sqlite.run("create table t(i int, f real, s text, b blob, n int)", db)
+    sqlite.run("insert into t values(?, ?, ?, ?, ?)", db,
+               [42, 1.5, "한글", encode("bytes"), none])
+    val 줄 = sqlite.one("select * from t", db)
+    assertsame(42, 줄["i"])
+    assertsame(1.5, 줄["f"])
+    assertsame("한글", 줄["s"])
+    assertsame("bytes", decode(줄["b"]))
+    assertsame(none, 줄["n"])
+    sqlite.close(db)
+
+test "? 자리로 넘긴 값은 SQL 로 읽히지 않는다":
+    if not 쓸수있다:
+        return
+    bring sqlite
+    val db = sqlite.open(":memory:")
+    sqlite.run("create table t(a text)", db)
+    // 이 글자가 SQL 로 읽히면 표가 사라집니다
+    sqlite.run("insert into t values(?)", db, ["'); drop table t; --"])
+    assertsame(true, sqlite.hastable("t", db))
+    assertsame(1, sqlite.value("select count(*) from t", db))
+    sqlite.close(db)
+
+test "한 묶음이 터지면 되돌아간다":
+    if not 쓸수있다:
+        return
+    bring sqlite
+    val db = sqlite.open(":memory:")
+    sqlite.run("create table t(a text)", db)
+
+    func 터뜨리기():
+        sqlite.run("insert into t values('넣었다')", db)
+        error("ValueError", "일부러")
+
+    try:
+        sqlite.tx(터뜨리기, db)
+    catch e:
+        assertsame("ValueError", e.type)
+    assertsame(0, sqlite.value("select count(*) from t", db))
+    sqlite.close(db)
+
+test "한 묶음이 무사하면 남는다":
+    if not 쓸수있다:
+        return
+    bring sqlite
+    val db = sqlite.open(":memory:")
+    sqlite.run("create table t(a text)", db)
+    sqlite.tx(func: sqlite.run("insert into t values('남는다')", db), db)
+    assertsame(1, sqlite.value("select count(*) from t", db))
+    sqlite.close(db)
+
+test "없는 줄은 none, 없는 표는 DatabaseError":
+    if not 쓸수있다:
+        return
+    bring sqlite
+    val db = sqlite.open(":memory:")
+    assertsame(none, sqlite.one("select 1 as a where 0", db))
+    val 났나 = false
+    try:
+        sqlite.rows("select * from 이런표는없다", db)
+    catch DatabaseError e:
+        났나 = true
+    assert(났나, "없는 표를 읽었는데 DatabaseError 가 안 났습니다")
+    sqlite.close(db)
+
+test "닫은 뒤에 쓰면 알려 준다":
+    if not 쓸수있다:
+        return
+    bring sqlite
+    val db = sqlite.open(":memory:")
+    sqlite.close(db)
+    sqlite.close(db)                     // 두 번 닫아도 탈 없이
+    val 났나 = false
+    try:
+        sqlite.rows("select 1", db)
+    catch DatabaseError e:
+        났나 = true
+    assert(났나)
+
+
+// --- ccall 이 잘못 쓴 것을 잡아 주는가 --------------------------------------
+
+test "서명과 인자 개수가 다르면 알려 준다":
+    if not 쓸수있다:
+        return
+    val lib = 0
+    try:
+        lib = cload("sqlite3")
+    catch e:
+        lib = cload("winsqlite3")
+    val 났나 = false
+    try:
+        ccall(lib, "sqlite3_libversion", "i>s", [])      // 하나라 해 놓고 0 개
+    catch ValueError e:
+        났나 = true
+    assert(났나)
+
+test "없는 함수 이름은 알려 준다":
+    if not 쓸수있다:
+        return
+    val lib = 0
+    try:
+        lib = cload("sqlite3")
+    catch e:
+        lib = cload("winsqlite3")
+    assertsame(false, chas(lib, "이런함수는없습니다"))
+    val 났나 = false
+    try:
+        ccall(lib, "이런함수는없습니다", ">i", [])
+    catch ValueError e:
+        났나 = true
+    assert(났나)
+
+test "실수는 마지막 인자일 때만 넘길 수 있다":
+    if not 쓸수있다:
+        return
+    val lib = 0
+    try:
+        lib = cload("sqlite3")
+    catch e:
+        lib = cload("winsqlite3")
+    val 났나 = false
+    try:
+        ccall(lib, "sqlite3_libversion", "dp>i", [1.0, 0])   // 실수가 앞자리
+    catch ValueError e:
+        났나 = true
+    assert(났나, "앞자리 실수가 그냥 통과했습니다")

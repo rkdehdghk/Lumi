@@ -1,0 +1,32 @@
+--- a first class ---
+Nabi makes a sound
+Animal(Nabi)
+Nabi animalia
+Animal
+--- inheritance ---
+Bori makes a sound
+Bori barks
+Dog(Bori, 3)
+animalia
+true true
+--- fields ---
+7
+--- polymorphism ---
+Nabi makes a sound
+Bori makes a sound
+Bori barks
+--- encapsulation ---
+2
+true
+false
+--- class values ---
+animalia animalia
+animalia canis
+--- abstract methods ---
+Circle area: 78.5
+--- operator overloading ---
+v1 + v2 = Vector(3, 7)
+v1 - v2 = Vector(1, 1)
+v1 * 3 = Vector(6, 12)
+v1[0] = 2 v1[1] = 4
+After v1[0] = 10: Vector(10, 4)

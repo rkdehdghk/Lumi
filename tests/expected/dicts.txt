@@ -1,0 +1,22 @@
+--- slices ---
+nums[1:3] = [20, 30]
+nums[:2]  = [10, 20]
+nums[3:]  = [40, 50]
+nums[-2:] = [40, 50]
+nums = [10, 20, 30, 40, 50]
+copy = [10, 20, 30, 40, 50, 60]
+ell
+--- dictionaries ---
+{"name": "Alex", "age": 20}
+name: Alex
+{"name": "Alex", "age": 21, "city": "Seoul"}
+len: 3
+--- for-in over a dict ---
+apple x 3
+banana x 5
+cherry x 2
+keys  : ["apple", "banana", "cherry"]
+values: [3, 5, 2]
+has apple?  true
+has mango?  false
+nested name: K

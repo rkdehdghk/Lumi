@@ -1,0 +1,121 @@
+// Sorting (정렬) in Lumi
+//
+// 다른 시퀀스 함수들처럼 '어떻게'(방향)를 앞에, 시퀀스를 마지막에 적습니다.
+// 방향은 참/거짓으로 적습니다: true 면 오름차순, false 면 내림차순.
+//   sort(시퀀스)         ->  작은 것부터 (오름차순).  방향을 안 적으면 이것
+//   sort(true,  시퀀스)  ->  작은 것부터 (오름차순)
+//   sort(false, 시퀀스)  ->  큰 것부터   (내림차순)
+//
+// 나온 것은 넣은 것과 같은 종류이고, 원래 값은 그대로 남습니다.
+
+print("=== 작은 것부터 / 큰 것부터 ===")
+print(sort([3, 1, 2]))              // [1, 2, 3]
+print(sort(true, [3, 1, 2]))        // [1, 2, 3]   위와 같은 뜻
+print(sort(false, [3, 1, 2]))       // [3, 2, 1]
+print(sort([2.5, 1, 10]))           // [1, 2.5, 10]   정수와 소수가 섞여도 OK
+
+// 방향은 참/거짓이면 되므로, 변수나 식을 그대로 넣어도 됩니다
+val 작은것부터 = false
+print(sort(작은것부터, [1, 3, 2]))    // [3, 2, 1]
+print(sort(1 < 2, [3, 1, 2]))       // [1, 2, 3]   식의 결과(true)를 그대로
+
+print("")
+print("=== 글자도 줄을 섭니다 ===")
+print(sort(["banana", "apple", "cherry"]))   // ["apple", "banana", "cherry"]
+print(sort(["다", "가", "나"]))                // ["가", "나", "다"]   한글은 가나다 순
+print(sort("banana"))                        // aaabnn   문자열은 '글자'가 줄을 섬
+print(sort(false, "banana"))                 // nnbaaa
+
+print("")
+print("=== 넣은 것과 같은 종류가 나옵니다 ===")
+print(sort([3, 1]), type(sort([3, 1])))      // [1, 3] list
+print(sort((3, 1)), type(sort((3, 1))))      // (1, 3) tuple
+print(sort("cab"), type(sort("cab")))        // abc str
+print(sort(encode("ba")))                    // bytes[61 62]
+
+print("")
+print("=== 원본은 그대로입니다 ===")
+val xs = [3, 1, 2]
+print(sort(xs))     // [1, 2, 3]   줄 세운 '새 리스트'
+print(xs)           // [3, 1, 2]   원본은 그대로!
+xs = sort(xs)       // 남기려면 이렇게 다시 넣습니다
+print(xs)           // [1, 2, 3]
+
+print("")
+print("=== 같은 갈래끼리만 견줄 수 있습니다 ===")
+print(sort([true, false, true]))    // [false, true, true]   false 가 작은 쪽
+print(sort([2, true, 0.5]))         // [0.5, true, 2]   참거짓은 숫자와 같은 갈래
+print(sort([]))                     // []               빈 것도 그대로
+// print(sort([1, "a"]))            // Error: 숫자와 글자가 섞여 견줄 수 없음
+// print(sort([[1], (1,)]))         // Error: 리스트와 튜플도 서로 못 견줌
+// print(sort([[1], ["a"]]))        // Error: 속을 견주다 숫자와 글자를 만남
+// print(sort({"a": 1}))            // Error: 딕셔너리는 keys/values 로 꺼내서
+
+print("")
+print("=== 속이 있는 값도 앞에서부터 차례로 견줍니다 ===")
+print(sort([[2, 1], [1, 9], [1, 2]]))    // [[1, 2], [1, 9], [2, 1]]
+print(sort([(3, 1), (1, 2)]))            // [(1, 2), (3, 1)]
+print(sort([encode("b"), encode("a")]))  // [bytes[61], bytes[62]]
+print([1, 2] < [2])                      // true   '<' 도 같은 방식으로 견줍니다
+
+print("")
+print("=== 글자의 순서는 문자 코드 순 ===")
+print(sort(["Apple", "apple", "Banana"]))   // ["Apple", "Banana", "apple"]
+print(sort(lower("BaAb")))                  // aabb    대소문자 무시하려면 먼저 맞추기
+print(sort(["10", "9"]))                    // ["10", "9"]   글자로 적힌 숫자 주의
+print(sort([10, 9]))                        // [9, 10]      수로 적으면 크기 순
+
+print("")
+print("=== 자주 쓰는 모양 ===")
+val 점수 = [78, 92, 85, 60]
+print(sort(점수)[0])                          // 60    가장 작은 값
+print(sort(false, 점수)[0])                   // 92    가장 큰 값
+print(sort(split("바나나 사과 포도")))          // ["바나나", "사과", "포도"]
+print(join(", ", sort(["다", "가", "나"])))    // 가, 나, 다
+print(sort(keys({"b": 1, "a": 2})))          // ["a", "b"]   딕셔너리 키 정렬
+
+// 애너그램(글자 구성이 같은지) 확인
+func 같은글자(a, b):
+    return sort(list(a)) == sort(list(b))
+
+print(같은글자("listen", "silent"))    // true
+print(같은글자("hello", "world"))      // false
+
+// 등수 매기기
+print("")
+print("=== 등수 매기기 ===")
+val 순위 = sort(false, 점수)
+for i in forr(val n = 0, n < len(순위), n = n + 1):
+    print(i + 1, "등:", 순위[i])
+
+print("")
+print("=== 기준 자리로 정렬 (insor) ===")
+// sort 는 값 전체를 견주지만, insor 는 '속의 한 자리'만 기준으로 삼습니다.
+//   insor(기준자리, 시퀀스)        -> 그 자리 값이 작은 것부터
+//   insor(방향, 기준자리, 시퀀스)  -> 방향까지 정해서
+val 성적표 = [["김", 90], ["박", 70], ["이", 80]]
+
+print(insor(1, 성적표))         // [["박", 70], ["이", 80], ["김", 90]]   점수 낮은 순
+print(insor(false, 1, 성적표))  // [["김", 90], ["이", 80], ["박", 70]]   점수 높은 순
+print(insor(0, 성적표))         // [["김", 90], ["박", 70], ["이", 80]]   이름 가나다 순
+print(insor(-1, 성적표))        // [["박", 70], ["이", 80], ["김", 90]]   음수는 뒤에서부터
+print(성적표)                   // 원본은 그대로!
+
+// 기준 자리 값만 견주므로 나머지 칸에는 무엇이 들어 있어도 됩니다
+print(insor(1, [["가", 2, "x"], ["나", 1, "y"]]))   // [["나", 1, "y"], ["가", 2, "x"]]
+
+// 문자열도 시퀀스라서 '글자 하나'를 기준으로 삼을 수 있습니다
+print(insor(0, ["bob", "amy", "cara"]))    // ["amy", "bob", "cara"]
+print(insor(1, (("b", 2), ("a", 1))))      // (("a", 1), ("b", 2))   튜플이면 튜플로
+
+// 기준값이 같으면 원래 순서를 그대로 지킵니다 (그래서 이어 쓰면 1순위·2순위)
+print(insor(1, [[1, 5], [2, 5], [3, 1]]))  // [[3, 1], [1, 5], [2, 5]]
+
+// 등수표 만들기
+print("")
+val 순위표 = insor(false, 1, 성적표)
+for i in forr(val n = 0, n < len(순위표), n = n + 1):
+    print(i + 1, "등:", 순위표[i][0], 순위표[i][1], "점")
+
+// print(insor(1, [["a"], ["b", 2]]))   // Error: 첫 항목에는 1번 자리가 없음
+// print(insor(1, [1, 2]))              // Error: 항목이 시퀀스여야 함

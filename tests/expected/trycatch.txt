@@ -1,0 +1,36 @@
+=== 1. 기본 예외 포획 검증 ===
+계산 중...
+예외 포획 성공! 메시지: [line 17] [MathError] Cannot divide by zero
+always 블록 실행 완료 (항상 실행됨)
+
+=== 2. 성공 시 실행(safe) 검증 ===
+safe 블록 실행: 계산에 성공했습니다! 결과: 5
+always 블록 실행 완료
+
+=== 3. 직접 에러 일으키기 error(...) 검증 ===
+ValueError 포획 성공! 발생한 에러: [line 41] [ValueError] 양수만 입력 가능합니다
+always 블록 완료
+
+=== 4. 잡히지 않으면 바깥으로 올라갑니다 ===
+안쪽 always 는 그래도 실행됩니다
+바깥에서 잡았습니다: [line 58] [InnerError] 안쪽에서 난 에러
+
+=== 5. 에러에서 꺼내 보기 ===
+종류   : IndexError
+메시지 : Index out of range
+줄     : 76
+파일   : trycatch.lumi
+그대로 : [line 76] [IndexError] Index out of range
+type() : IndexError
+
+=== 6. 종류에는 갈래가 있습니다 ===
+없는 자리   -> LookupError 로 잡음 (진짜 종류: IndexError)
+없는 키     -> LookupError 로 잡음 (진짜 종류: KeyError)
+0으로 나누기 -> 나머지: MathError
+Error 로 다 잡힙니다: IndexError
+
+=== 7. 메시지 글자로는 잡히지 않습니다 ===
+제대로 - 종류는 Error 입니다
+
+=== 8. 내가 지은 종류 ===
+잡음: 잔액부족 / 잔액 1000원인데 3000원을 찾으려 했습니다

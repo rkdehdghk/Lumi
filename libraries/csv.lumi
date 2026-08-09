@@ -1,0 +1,138 @@
+// csv -- 표 데이터(CSV) 라이브러리
+//
+// 엑셀에서 "CSV로 내보내기" 한 파일을 읽고 쓰는 데 쓰는 라이브러리입니다.
+//
+//   bring csv
+//   csv.parse(텍스트)                 -> 행 리스트 (행 = 값 리스트)
+//   csv.build(행들)                   -> CSV 전체 텍스트
+//   csv.line(값들)                    -> CSV 한 줄 텍스트
+//   csv.load(인코딩, 파일이름)        -> 행 리스트
+//   csv.save(인코딩, 행들, 파일이름)  -> 쓴 글자 수
+//   csv.head(행들)                    -> 첫 줄을 이름표로 삼은 딕셔너리 리스트
+//   csv.unhead(이름표, 딕셔너리들)    -> 다시 행 리스트로
+//
+// 인코딩은 반드시 적습니다. 한국 엑셀이 만든 CSV 는 거의 "cp949" 이고,
+// 웹/프로그램이 만든 것은 "utf-8" 입니다. 여기서 틀리면 글자가 깨집니다.
+//
+//   val 표 = csv.load("cp949", "매출.csv")
+//   for 행 in csv.head(표):
+//       print(행["이름"], 행["금액"])
+
+
+// --- 읽기 -------------------------------------------------------------
+
+// CSV 텍스트를 행 리스트로 바꿉니다.
+// 큰따옴표로 감싼 칸 안의 쉼표/줄바꿈은 값의 일부로 그대로 지킵니다.
+// 칸 안의 큰따옴표는 "" 두 개로 적습니다 (CSV 규격 그대로).
+func parse(csv_text):
+    val content = replace("\r\n", "\n", csv_text)
+    val rows = []
+    val row = []
+    val cell = ""
+    val in_quotes = false
+    val i = 0
+    val end = len(content)
+    while i < end:
+        val c = content[i]
+        if in_quotes:
+            if c == "\"":
+                if i + 1 < end and content[i + 1] == "\"":
+                    cell = cell + "\""
+                    i = i + 1
+                else:
+                    in_quotes = false
+            else:
+                cell = cell + c
+        elif c == "\"" and cell == "":
+            in_quotes = true
+        elif c == ",":
+            push(row, cell)
+            cell = ""
+        elif c == "\n":
+            push(row, cell)
+            push(rows, row)
+            row = []
+            cell = ""
+        else:
+            cell = cell + c
+        i = i + 1
+    // 마지막 줄이 줄바꿈 없이 끝났으면 그것도 한 행입니다
+    if cell != "" or len(row) > 0:
+        push(row, cell)
+        push(rows, row)
+    return rows
+
+
+// --- 쓰기 -------------------------------------------------------------
+
+// 한 칸을 CSV 규격에 맞게 감쌉니다. 쉼표/큰따옴표/줄바꿈이 있을 때만 감쌉니다.
+func wrap_cell(value):
+    val s = str(value)
+    if incount(",", s) > 0 or incount("\"", s) > 0 or incount("\n", s) > 0:
+        return "\"" + replace("\"", "\"\"", s) + "\""
+    return s
+
+// 값 리스트 하나를 CSV 한 줄로 만듭니다 (줄바꿈은 붙이지 않습니다).
+func line(items):
+    val csv_text = ""
+    val i = 0
+    while i < len(items):
+        if i > 0:
+            csv_text = csv_text + ","
+        csv_text = csv_text + wrap_cell(items[i])
+        i = i + 1
+    return csv_text
+
+// 행 리스트 전체를 CSV 텍스트로 만듭니다 (줄마다 \n).
+func build(rows):
+    val csv_text = ""
+    for row in rows:
+        csv_text = csv_text + line(row) + "\n"
+    return csv_text
+
+
+// --- 파일 -------------------------------------------------------------
+
+func load(encoding, filename):
+    return parse(read(encoding, filename))
+
+func save(encoding, rows, filename):
+    return write(encoding, build(rows), filename)
+
+
+// --- 이름표(머리글) ---------------------------------------------------
+
+// 첫 줄을 이름표로 삼아, 나머지 행을 딕셔너리 리스트로 바꿉니다.
+// 칸이 모자란 행은 "" 로 채웁니다. 남는 칸은 버립니다.
+func head(rows):
+    if len(rows) == 0:
+        return []
+    val headers = rows[0]
+    val result = []
+    val r = 1
+    while r < len(rows):
+        val row = rows[r]
+        val d = {}
+        val c = 0
+        while c < len(headers):
+            if c < len(row):
+                d[headers[c]] = row[c]
+            else:
+                d[headers[c]] = ""
+            c = c + 1
+        push(result, d)
+        r = r + 1
+    return result
+
+// head 의 반대. 이름표 순서대로 딕셔너리를 행으로 펴서, 이름표 줄까지 붙여 돌려줍니다.
+func unhead(headers, dicts):
+    val rows = [headers]
+    for d in dicts:
+        val row = []
+        for header in headers:
+            if has(d, header):
+                push(row, d[header])
+            else:
+                push(row, "")
+        push(rows, row)
+    return rows

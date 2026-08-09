@@ -1,0 +1,9 @@
+// 나의 첫 Lumi 프로그램!
+// print 는 값들을 띄어쓰기로 이어 붙여 한 줄로 찍어 줍니다.
+print("Hello, this is the Lumi language!")
+
+// val 로 변수를 만듭니다. 자료형은 값을 보고 저절로 정해집니다.
+val name = "Alex"       // 문자열
+val age = 20            // 정수
+print("Name:", name)
+print("Age:", age)

@@ -1,0 +1,4 @@
+bring math_utils
+
+val 결과 = math_utils.더하기(15, 25)
+print("15 + 25 =", 결과)

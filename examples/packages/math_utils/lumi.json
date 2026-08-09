@@ -1,0 +1,6 @@
+{
+  "name": "math_utils",
+  "version": "1.0.0",
+  "description": "Lumi 수학 유틸리티 샘플 패키지",
+  "main": "lib.lumi"
+}

@@ -1,0 +1,17 @@
+values: [1, 2, 3] hello (10, 20, 30)
+types : list str tuple
+first  : 1 h 10
+last   : 3 o 30
+slice  : [2, 3] ell (10, 20)
+length : 3 5 3
+joined : [1, 2, 3, 4] hello! (10, 20, 30, 40)
+repeat : [1, 2, 3, 1, 2, 3] hellohellohello (10, 20, 30, 10, 20, 30)
+line   : --------------------
+board  : [0, 0, 0, 0, 0, 0, 0, 0, 0]
+a = was a list, now a string
+empty box: [] len 0
+e in hello   : true
+ell in hello : true
+20 in c      : true
+7 not in a   : true
+vowels in 'sequence': 4

@@ -1,0 +1,87 @@
+// Use Block & File Seek (열고 저절로 닫기 · 파일 자리 옮기기) in Lumi
+//
+//   use 이름 = open(...):        블록이 끝나면 저절로 close 합니다
+//       ...
+//
+//   move(자리, 파일)   읽고 쓰는 자리를 옮깁니다 (옮긴 자리를 돌려줌)
+//   where(파일)        지금 자리가 몇 바이트째인지
+//   len(파일)          파일 전체가 몇 바이트인지
+//
+// 자리는 '글자 수'가 아니라 '바이트 수'입니다 (utf-8 에서 한글 한 글자 = 3바이트).
+// 그래서 where 로 기억해 두었다가 move 로 되돌아가는 쓰임이 가장 안전합니다.
+//
+// 이 예제는 자기 폴더(examples/)에 파일을 만들었다가 맨 끝에서 다시 지웁니다.
+
+write("one\ntwo\nthree\n", 'use_note.txt')
+
+print("=== use: close 를 적지 않습니다 ===")
+use f = open(read, 'use_note.txt'):
+    while not isend(f):
+        print(readline(f))
+// 여기서 f 는 이미 닫혔습니다. 이름도 블록 안에서만 살아서,
+// 여기서 readline(f) 라고 쓰면 "Variable 'f' is not defined" 오류입니다.
+
+print("")
+print("=== 쓸 때도 마찬가지 ===")
+use f = open(write, 'use_note.txt'):
+    writeline("one", f)
+    writeline("two", f)
+    writeline("three", f)
+print(read('use_note.txt'))
+
+print("")
+print("=== where 로 기억해 두었다가 move 로 되돌아가기 ===")
+use f = open('use_note.txt'):
+    print("시작 자리:", where(f), "/ 전체:", len(f), "바이트")
+    print("1:", readline(f))
+    val 표시 = where(f)                 // 여기까지 읽었다는 것을 기억
+    print("표시해 둔 자리:", 표시)
+    print("2:", readline(f))
+    move(표시, f)                       // 되돌아가서
+    print("다시 2:", readline(f))       // 같은 줄을 한 번 더
+
+print("")
+print("=== 마음대로 옮기기 ===")
+use f = open('use_note.txt'):
+    print("맨 앞으로:", move(0, f), "->", readline(f))
+    print("뒤에서 6바이트:", move(-6, f), "->", readline(f))
+    print("맨 끝으로:", move(len(f), f))
+    print("isend:", isend(f))           // true
+
+print("")
+print("=== 쓰는 자리도 옮깁니다 (덮어쓰기) ===")
+use f = open(write, 'use_note.txt'):
+    write("hello world", f)
+    move(0, f)
+    write("HELLO", f)                   // 앞 5글자를 덮어씁니다
+print(read('use_note.txt'))             // HELLO world
+
+print("")
+print("=== break 로 나가도 닫힙니다 ===")
+write("a\nb\nc\n", 'use_note.txt')
+for i in forr(val k = 0, k < 3, k = k + 1):
+    use f = open('use_note.txt'):
+        print(i, readline(f))
+        if i == 1:
+            break                       // 나가기 전에 닫습니다
+print("반복문을 빠져나왔습니다")
+
+print("")
+print("=== 겹쳐 쓰기 (안쪽이 먼저 닫힙니다) ===")
+use 안 = open('use_note.txt'):
+    use 밖 = open(write, 'use_copy.txt'):
+        while not isend(안):
+            writeline(readline(안), 밖)
+print(read('use_copy.txt'))
+
+print("")
+print("=== 뒷정리 ===")
+// 열린 채였다면 윈도우가 지우지 못합니다. 지워졌다는 것이 곧 닫혔다는 뜻입니다.
+print("지움:", delfile('use_note.txt'), delfile('use_copy.txt'))
+
+// 오류가 나는 것들:
+//   use x = 5:                    // open(...) 이 준 파일이 아님
+//   use f = open(append, 이름):    //   move(0, f) -> append 는 늘 끝에 씁니다
+//       move(0, f)
+//   move(1.5, f)                  // 자리는 정수여야 합니다
+//   move(99999, f)                // 파일 밖의 자리

@@ -1,0 +1,23 @@
+# 이 저장소는 **바이트가 곧 시험**입니다.
+#
+#   tests/expected/*.txt      골든 파일 - fc /b · cmp 로 바이트 비교합니다 (LF)
+#   tests/nondeterministic.txt findstr /x 가 맞추려면 CRLF 여야 합니다
+#   *.bat                     LF 로 바뀌면 cmd 가 줄을 반토막 내어 읽습니다 (CRLF)
+#   tests/dap/session.txt      Content-Length 가 바이트 수라 한 글자도 달라지면 안 됩니다
+#   tests/crlf/blankline.lumi  **일부러 CRLF** 입니다 - 렉서 회귀 시험용
+#
+# 그래서 git 의 줄 끝 정규화를 **통째로 끕니다.** 누가 core.autocrlf 를 켜 두었든
+# 어느 운영체제에서 받아 가든, 넣은 바이트가 그대로 나옵니다.
+#
+# 새 파일을 넣을 때: 줄 끝은 만든 그대로 저장됩니다. .bat 은 CRLF 로 만드세요.
+* -text
+
+# 그림은 확실히 이진 파일로 (diff 를 시도하지 않도록)
+*.png  binary
+*.ico  binary
+*.PNG  binary
+
+# .sh 는 리눅스·맥에서 실행됩니다. 줄 끝에 CR 이 섞이면 셸이 그것을 명령의 일부로
+# 읽어 "bad interpreter" 로 죽습니다. 위의 '* -text' 로도 지켜지지만, 새로 만들 때
+# 실수로 CRLF 로 저장하는 것까지 막으려고 여기서 한 번 더 못박습니다.
+*.sh text eol=lf

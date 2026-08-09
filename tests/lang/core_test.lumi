@@ -1,0 +1,180 @@
+// Lumi 언어 자체를 확인하는 시험들.
+//
+//   lumi test tests\lang          이 폴더를 통째로
+//   lumi test tests\lang\core_test.lumi   파일 하나만
+//
+// test 블록은 'lumi test' 로 돌릴 때만 실행됩니다.
+// 그냥 lumi 이파일.lumi 로 돌리면 조용히 건너뜁니다.
+
+test "숫자 계산":
+    assertsame(7, 3 + 4)
+    assertsame(12, 3 * 4)
+    assertsame(1, 7 % 3)
+    assertsame(8, 2 ** 3)
+    assertsame(2.5, 5 / 2)
+    assert(2 ** 62 > 0, "2의 62승은 아직 정수 범위 안입니다")
+
+test "정수가 넘치면 알려 준다":
+    val 큰수 = 9223372036854775807
+    try:
+        val x = 큰수 + 1
+        assert(false, "넘쳤는데 오류가 안 났습니다")
+    catch MathError e:
+        assert(true)
+
+test "문자열":
+    assertsame("가나다", "가" + "나다")
+    assertsame(3, len("가나다"))
+    assertsame("가", "가나다"[0])
+    assertsame("나다", "가나다"[1:])
+    assertsame("ABC", upper("abc"))
+    assertsame(["a", "b"], split(",", "a,b"))
+    assertsame("a-b", join("-", ["a", "b"]))
+
+test "리스트":
+    val xs = [1, 2, 3]
+    assertsame(3, len(xs))
+    assertsame(3, xs[-1])
+    assertsame([2, 3], xs[1:])
+    push(xs, 4)
+    assertsame([1, 2, 3, 4], xs)
+    assertsame(4, pop(xs))
+    assertsame([1, 2, 3], xs)
+    assertsame([1, 2, 3], sort([3, 1, 2]))
+    assertsame([3, 2, 1], sort(false, [1, 2, 3]))
+
+test "딕셔너리":
+    val d = {"a": 1}
+    assertsame(1, d["a"])
+    assert(has(d, "a"))
+    assert(not has(d, "b"))
+    d["b"] = 2
+    assertsame(["a", "b"], keys(d))
+    assertsame(1, del(d, "a"))
+    assertsame(["b"], keys(d))
+
+test "1 과 true 는 다른 키":
+    val d = {1: "정수", true: "참"}
+    assertsame(2, len(d))
+    assertsame("정수", d[1])
+    assertsame("참", d[true])
+
+test "함수 기본값":
+    func f(a, b = 10):
+        return a + b
+    assertsame(11, f(1))
+    assertsame(3, f(1, 2))
+    assertsame(3, f(1, b = 2))
+    assertsame(3, f(b = 2, a = 1))
+
+test "기본값은 부를 때마다 새로 만든다":
+    func 담기(값, 통 = []):
+        push(통, 값)
+        return 통
+    assertsame([1], 담기(1))
+    assertsame([2], 담기(2))
+
+test "함수는 값이다":
+    val 두배 = func x: x * 2
+    val 표 = {"두배": 두배}
+    assertsame(10, 표["두배"](5))
+    val 목록 = [두배]
+    assertsame(8, 목록[0](4))
+
+    func 바깥(n):
+        func 안(x):
+            return x + n
+        return 안
+    assertsame(8, 바깥(5)(3))
+
+test "클로저":
+    func 세는것():
+        val n = 0
+        func 하나더():
+            n = n + 1
+            return n
+        return 하나더
+    val c = 세는것()
+    assertsame(1, c())
+    assertsame(2, c())
+
+test "클래스":
+    class 동물:
+        func init(이름):
+            this.이름 = 이름
+        func 소리():
+            return "..."
+        func text():
+            return this.이름 + "(" + this.소리() + ")"
+
+    class 개 from 동물:
+        func 소리():
+            return "멍"
+
+    val d = 개("바둑이")
+    assertsame("멍", d.소리())
+    assertsame("바둑이(멍)", str(d))
+    assert(isa(d, 동물), "개는 동물이기도 합니다")
+    assertsame("개", type(d))
+
+test "클래스를 for 로 돌리기":
+    class 범위:
+        func init(끝):
+            this.끝 = 끝
+        func iter():
+            val out = []
+            for val i = 0, i < this.끝, i++:
+                push(out, i)
+            return out
+    assertsame([0, 1, 2], [x for x in 범위(3)])
+
+test "예외 잡기":
+    try:
+        val xs = [1]
+        val bad = xs[9]
+        assert(false, "여기까지 오면 안 됩니다")
+    catch IndexError e:
+        assertsame("IndexError", e.type)
+        assertsame("Index out of range", e.message)
+
+test "예외 종류에는 갈래가 있다":
+    try:
+        val d = {"a": 1}
+        val bad = d["b"]
+        assert(false, "여기까지 오면 안 됩니다")
+    catch LookupError e:
+        assertsame("KeyError", e.type)
+
+test "메시지 글자로는 안 잡힌다":
+    val 잡힌종류 = ""
+    try:
+        error("여기에 FileNotFound 라는 글자가 있습니다")
+    catch FileNotFound e:
+        잡힌종류 = "잘못잡힘"
+    catch e:
+        잡힌종류 = e.type
+    assertsame("Error", 잡힌종류)
+
+test "always 는 언제나 돈다":
+    val 자국 = []
+    try:
+        push(자국, "시도")
+        error("일부러")
+    catch e:
+        push(자국, "잡음")
+    always:
+        push(자국, "마무리")
+    assertsame(["시도", "잡음", "마무리"], 자국)
+
+test "형 변환":
+    assertsame(42, num("42"))
+    assertsame("42", str(42))
+    assertsame(3, int(3.7))
+    assertsame("0b1011", bin(11))
+    assertsame(255, num("0xff"))
+
+test "시퀀스 찾기":
+    assertsame(2, incount("아", "아이아"))
+    assertsame([0, 2], infind("아", "아이아"))
+    assertsame(0, incount("z", "abc"))
+    assertsame([], infind("z", "abc"))

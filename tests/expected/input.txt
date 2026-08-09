@@ -1,0 +1,4 @@
+What is your name? Nice to meet you, Lumi
+How old are you? Next year you will be 21 !
+First number: Second number: 3 + 4 = 7
+Result string: 7!

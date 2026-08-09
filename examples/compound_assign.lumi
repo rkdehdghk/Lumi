@@ -1,0 +1,40 @@
+// 연산자 축약 (복합 대입)
+//   x += y  는  x = x + y  를 짧게 쓴 것입니다.
+
+// --- 사칙연산 축약 ---
+val x = 10
+x += 5          // 15
+x -= 3          // 12
+x *= 2          // 24
+x /= 4          // 6
+x %= 4          // 2
+x **= 5         // 32   (2의 5제곱)
+print("x =", x)
+
+// --- 문자열도 += 로 이어 붙일 수 있습니다 ---
+val word = "Lu"
+word += "mi"
+word += "!"
+print("word =", word)       // Lumi!
+
+// --- 리스트 자리·딕셔너리 키에도 그대로 씁니다 ---
+val nums = [10, 20, 30]
+nums[0] += 100
+nums[-1] *= 2
+print("nums =", nums)       // [110, 20, 60]
+
+val score = {"alex": 10}
+score["alex"] += 5
+print("score =", score)     // {"alex": 15}
+
+// --- 비트연산 축약 (정수끼리만) ---
+val flags = 12
+flags &= 10                 // 8
+flags |= 1                  // 9
+flags <<= 2                 // 36
+print("flags =", flags)
+
+// --- C 스타일 for 의 증감 자리에도 쓸 수 있습니다 ---
+print("countdown:")
+for val i = 5, i > 0, i -= 1:
+    print("  ", i)

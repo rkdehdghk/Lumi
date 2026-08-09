@@ -1,0 +1,38 @@
+// math -- a small math library for Lumi
+// Use it with:  bring math      (import all)
+//           or:  bring math up sqrt   (import only sqrt)
+
+func abs(x):
+    if x < 0:
+        return -x
+    return x
+
+func max(a, b):
+    if a > b:
+        return a
+    return b
+
+func min(a, b):
+    if a < b:
+        return a
+    return b
+
+// base to the power of n (n is a whole number >= 0)
+func pow(base, n):
+    val result = 1
+    val i = 0
+    while i < n:
+        result = result * base
+        i = i + 1
+    return result
+
+// square root using Newton's method
+func sqrt(x):
+    if x <= 0:
+        return 0
+    val guess = x
+    val i = 0
+    while i < 30:
+        guess = (guess + x / guess) / 2
+        i = i + 1
+    return guess

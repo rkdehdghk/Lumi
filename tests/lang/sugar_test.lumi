@@ -1,0 +1,60 @@
+// 문법 설탕 — 있으면 편한 것 (?. 과 ??)
+
+class 사람:
+    func init(이름):
+        this.이름 = 이름
+    func 인사():
+        return "안녕 " + this.이름
+
+val 갑 = 사람("가나")
+val 없음 = none
+
+// ------------------------------------------------------------------
+// ?. — 앞의 것이 none 이면 none
+// ------------------------------------------------------------------
+
+test "?. 은 값이 있으면 그냥 . 과 같다":
+    assertsame("가나", 갑?.이름)
+
+test "?. 은 앞이 none 이면 none":
+    assertsame(none, 없음?.이름)
+
+test "?. 로 부르면 none 일 때 부르지 않는다":
+    assertsame(none, 없음?.인사())
+    assertsame("안녕 가나", 갑?.인사())
+
+test "?. 는 한 마디씩이다 — 이어 쓰려면 마디마다 붙인다":
+    // 없음?.이름.길이 는 none.길이 라서 오류입니다. 마디마다 ?. 를 붙이세요.
+    assertsame(none, 없음?.이름?.없는것)
+
+// ------------------------------------------------------------------
+// ?? — none 일 때만 오른쪽
+// ------------------------------------------------------------------
+
+test "?? 는 none 만 갈아 준다":
+    assertsame(9, none ?? 9)
+    assertsame(0, 0 ?? 9)
+    assertsame(false, false ?? 9)
+    assertsame("", "" ?? 9)
+
+test "?? 는 or 와 다르다":
+    assertsame(9, 0 or 9)            // or 는 0 도 거짓으로 봅니다
+    assertsame(0, 0 ?? 9)            // ?? 는 none 만 봅니다
+
+test "?? 는 오른쪽을 미리 셈하지 않는다":
+    val 셈한횟수 = [0]
+    func 세기():
+        push(셈한횟수, 1)
+        return 7
+    assertsame(1, 1 ?? 세기())
+    assertsame(1, len(셈한횟수))     // 아직 0 번 더해졌으니 길이는 1
+    assertsame(7, none ?? 세기())
+    assertsame(2, len(셈한횟수))
+
+test "?? 와 ?. 를 같이 쓰기":
+    assertsame("없음", 없음?.이름 ?? "없음")
+    assertsame("가나", 갑?.이름 ?? "없음")
+
+test "?? 는 or 보다 붙고 and 보다 헐겁다":
+    assertsame(true, none ?? true and true)   // none ?? (true and true)
+    assertsame(1, false or none ?? 1)         // false or (none ?? 1)

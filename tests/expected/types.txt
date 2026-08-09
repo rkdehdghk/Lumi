@@ -1,0 +1,26 @@
+=== 1. 안 적어도 됩니다 ===
+42
+가가
+
+=== 2. 적으면 지켜집니다 ===
+루미은(는) 3살
+막혔습니다: str needs text (a string) but got 3
+
+=== 3. 돌려주는 값도 봅니다 ===
+5
+막혔습니다: str needs text (a string) but got 3
+
+=== 4. 쓸 수 있는 이름 ===
+10
+2
+true
+(3, 4)
+
+=== 5. 클래스 메서드에도 ===
+1500
+막혔습니다: int needs a number or a character but got [1000]
+
+=== 6. 돌리기 전에 - lumi lint ===
+글자로 그 자리에 적어 둔 값이 어긋나면 lumi lint 가 돌리기 전에 알려 줍니다.
+  func 나이말하기(str 이름, int 살) str:  를
+  나이말하기(3, 3)  으로 부르면 lint 가 그 줄을 짚어 줍니다.

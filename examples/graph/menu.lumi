@@ -1,0 +1,100 @@
+// menu.lumi -- 그래프 알고리즘 인터랙티브 데모
+// 사용법:  c-interpreter\bin\lumi.exe examples\graph\menu.lumi
+//
+// 메뉴 번호를 입력하면 대응하는 알고리즘을 샘플 그래프에 실행합니다.
+// 종료하려면 0 을 입력하세요.
+
+bring graph up Graph, bfs, dfs, bfsPath, dijkstra, dijkstraPath
+bring graph up floydWarshall, prim, kruskal, topologicalSort, hasCycle, bellmanFord
+
+// ---- 샘플 무방향 그래프 (가중치) ----
+func buildSample():
+    val g = Graph()
+    g.addEdge("A", "B", 4)
+    g.addEdge("A", "C", 2)
+    g.addEdge("B", "C", 1)
+    g.addEdge("B", "D", 5)
+    g.addEdge("C", "D", 8)
+    g.addEdge("C", "E", 10)
+    g.addEdge("D", "E", 2)
+    return g
+
+// ---- 샘플 DAG (위상정렬용) ----
+func buildTasks():
+    val t = Graph()
+    t.setDirected()
+    t.addEdge("요구사항", "설계", 1)
+    t.addEdge("설계", "구현", 1)
+    t.addEdge("설계", "테스트계획", 1)
+    t.addEdge("구현", "테스트", 1)
+    t.addEdge("테스트계획", "테스트", 1)
+    t.addEdge("테스트", "배포", 1)
+    return t
+
+func showMenu():
+    print()
+    print("========== 그래프 알고리즘 메뉴 ==========")
+    print(" 1. 그래프 보기")
+    print(" 2. BFS 순회")
+    print(" 3. DFS 순회")
+    print(" 4. BFS 최단경로 (2정점 입력)")
+    print(" 5. 다익스트라 (시작정점 입력)")
+    print(" 6. Floyd-Warshall 모든 쌍 최단경로")
+    print(" 7. 최소신장트리 - Prim")
+    print(" 8. 최소신장트리 - Kruskal")
+    print(" 9. 위상정렬 (DAG)")
+    print("10. 사이클 검출 (DAG)")
+    print(" 0. 종료")
+    print("==========================================")
+
+func run():
+    val g = buildSample()
+    val running = true
+    while running:
+        showMenu()
+        val choice = num(input("선택> "))
+        print()
+        if choice == 0:
+            print("프로그램을 종료합니다.")
+            running = false
+        elif choice == 1:
+            g.show()
+        elif choice == 2:
+            val s = input("시작 정점> ")
+            print("[BFS]", bfs(g, s))
+        elif choice == 3:
+            val s = input("시작 정점> ")
+            print("[DFS]", dfs(g, s))
+        elif choice == 4:
+            val a = input("출발> ")
+            val b = input("도착> ")
+            print("[BFS 경로]", bfsPath(g, a, b))
+        elif choice == 5:
+            val s = input("시작 정점> ")
+            val r = dijkstra(g, s)
+            print("[다익스트라 거리]")
+            for u in keys(r["dist"]):
+                print("   ", u, "=", r["dist"][u])
+            print("   예) A->E 경로:", dijkstraPath(g, "A", "E"))
+        elif choice == 6:
+            val fw = floydWarshall(g)
+            val names = fw["names"]
+            print("        ", names)
+            for i in forr(val k = 0, k < len(names), k = k + 1):
+                print("   ", names[i], ":", fw["matrix"][i])
+        elif choice == 7:
+            val pr = prim(g, "A")
+            print("[Prim MST] 비용:", pr["weight"], " 간선:", pr["edges"])
+        elif choice == 8:
+            val kr = kruskal(g)
+            print("[Kruskal MST] 비용:", kr["weight"], " 간선:", kr["edges"])
+        elif choice == 9:
+            val ts = topologicalSort(buildTasks())
+            print("[위상정렬] 사이클:", ts["hasCycle"])
+            print("   순서:", ts["order"])
+        elif choice == 10:
+            print("[사이클 검출 - DAG]", hasCycle(buildTasks()))
+        else:
+            print("잘못된 선택입니다.")
+
+run()

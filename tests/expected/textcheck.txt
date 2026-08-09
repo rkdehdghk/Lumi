@@ -1,0 +1,47 @@
+=== isalpha : 전부 알파벳인가? (all letters) ===
+true
+false
+false
+false
+false
+=== isdigit : 전부 숫자인가? (all digits) ===
+true
+true
+false
+false
+false
+=== isalgit : 전부 알파벳이거나 숫자인가? (all letters or digits) ===
+true
+true
+true
+false
+false
+false
+false
+=== hasalpha / hasdigit / hasalgit : 하나라도 있는가? (any) ===
+true
+false
+true
+false
+true
+false
+=== is 와 has 의 차이 (all vs any) ===
+false true
+false true
+=== 입력 검사에 쓰기 (checking what the user typed) ===
+나이를 적어 주세요: 내년이면 18 살이 되네요
+=== 비밀번호가 튼튼한지 (a practical use) ===
+false
+false
+false
+true
+=== 아이디는 영어와 숫자만 (a practical use of isalgit) ===
+true
+false
+false
+false
+false
+=== 글자 하나씩 세어 보기 (counting by kind) ===
+알파벳 4 개 / 숫자 4 개 / 나머지 3 개
+=== 잘못 쓰면 오류 (errors) ===
+true

@@ -1,0 +1,42 @@
+nums = [10, 20, 30]
+first: 10
+last: 30
+length: 3
+joined: [1, 2, 3, 4]
+--- for-in over a list ---
+100
+200
+300
+--- for-in over a string ---
+H
+i
+!
+--- C-style for ---
+0
+1
+2
+3
+4
+sum 1..10 = 55
+stack = ["a", "b", "c"]
+popped: c
+stack now = ["a", "b"]
+grid[1][0] = 3
+--- forr() ---
+[0, 1, 2, 3, 4]
+[3, 2, 1]
+n = 1
+n = 2
+n = 3
+--- break ---
+x = 1
+x = 2
+x = 3
+--- continue ---
+x = 1
+x = 2
+x = 4
+x = 5
+--- index assignment ---
+scores = [99, 20, 77]
+grid = [[1, 2], [88, 4]]

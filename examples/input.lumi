@@ -1,0 +1,17 @@
+// input() 은 사용자에게 한 줄을 입력받습니다.
+// 받아 온 값은 '언제나 문자열'이라, 숫자로 쓰려면 num() 으로 바꿔야 합니다.
+
+val name = input("What is your name? ")
+print("Nice to meet you,", name)
+
+val age = num(input("How old are you? "))    // 문자열 "20" -> 숫자 20
+print("Next year you will be", age + 1, "!")
+
+// 숫자 두 개를 받아 더하기
+val a = num(input("First number: "))
+val b = num(input("Second number: "))
+print(a, "+", b, "=", a + b)
+
+// 숫자를 문자열에 이어 붙이려면 str() 로 바꿔 줍니다
+val total = a + b
+print("Result string: " + str(total) + "!")

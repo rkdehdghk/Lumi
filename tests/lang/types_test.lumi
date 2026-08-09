@@ -1,0 +1,114 @@
+// 골라 쓰는 자료형 (gradual static typing)
+//   - 안 적으면 지금까지와 똑같습니다
+//   - 적으면 부를 때와 돌려줄 때 봅니다 (규칙은 'int x = ...' 선언과 같습니다)
+
+func 안적음(a, b):
+    return a + b
+
+func 적음(int a, int b) int:
+    return a + b
+
+func 글자만(str s) str:
+    return s + "!"
+
+func 표만(dict d) list:
+    return keys(d)
+
+test "안 적으면 아무거나 받는다":
+    assertsame(3, 안적음(1, 2))
+    assertsame("가나", 안적음("가", "나"))
+
+test "적으면 맞는 값은 그냥 지나간다":
+    assertsame(3, 적음(1, 2))
+    assertsame("가!", 글자만("가"))
+
+test "적으면 어긋나는 값은 오류다":
+    val 막혔나 = false
+    try:
+        글자만(3)
+    catch e:
+        막혔나 = true
+    assert(막혔나, "str 자리에 숫자가 그냥 들어갔습니다")
+
+test "돌려주는 값도 본다":
+    val 막혔나 = false
+    try:
+        eval("적음(1, 2)")
+    catch e:
+        막혔나 = true
+    assert(not 막혔나)
+
+func 거짓말() str:
+    return 5
+
+test "돌려주기로 적어 둔 것과 다르면 오류다":
+    val 막혔나 = false
+    try:
+        거짓말()
+    catch e:
+        막혔나 = true
+    assert(막혔나, "str 을 돌려준다고 적어 놓고 숫자를 돌려줬는데 통과했습니다")
+
+test "선언과 같은 규칙이다 - int 는 글자를 코드로 바꾼다":
+    // int x = "A" 가 65 이듯이, int 자리에 온 글자도 코드가 됩니다
+    assertsame(65, 적음(0, "A"))
+
+test "이름 붙인 인자에도 본다":
+    assertsame(7, 적음(a = 3, b = 4))
+
+test "기본값에도 본다":
+    // 기본값은 부를 때 셈해서 그 자리에 놓이므로 똑같이 검사받습니다
+    assertsame(5, 적음(5, b = 0))
+
+// ------------------------------------------------------------------
+// 보기만 하는 자료형 넷 — bool / list / tuple / dict
+// ------------------------------------------------------------------
+
+test "bool list tuple dict 는 선언에도 쓸 수 있다":
+    bool 참 = true
+    list 목록 = [1, 2]
+    tuple 짝 = (1, 2)
+    dict 표 = {"가": 1}
+    assertsame(true, 참)
+    assertsame(2, len(목록))
+    assertsame(2, len(짝))
+    assertsame(1, len(표))
+
+test "보기만 하는 자료형은 바꿔 주지 않는다":
+    val 막혔나 = false
+    try:
+        eval("1")
+        bool 나쁨 = 1              // 1 은 true 로 바뀌지 않습니다
+    catch e:
+        막혔나 = true
+    assert(막혔나, "bool 자리에 1 이 그냥 들어갔습니다")
+
+test "list 와 tuple 은 서로 다르다":
+    assertsame([1, 2], 표만({1: "가", 2: "나"}))
+    val 막혔나 = false
+    try:
+        표만([1, 2])
+    catch e:
+        막혔나 = true
+    assert(막혔나, "dict 자리에 리스트가 들어갔습니다")
+
+// ------------------------------------------------------------------
+// 클래스 메서드에도 됩니다
+// ------------------------------------------------------------------
+
+class 저금통:
+    func init(int 처음):
+        this.돈 = 처음
+    func 넣기(int 얼마) int:
+        this.돈 = this.돈 + 얼마
+        return this.돈
+
+test "메서드의 자료형도 본다":
+    val 통 = 저금통(100)
+    assertsame(150, 통.넣기(50))
+    val 막혔나 = false
+    try:
+        통.넣기([1])
+    catch e:
+        막혔나 = true
+    assert(막혔나, "int 자리에 리스트가 들어갔습니다")

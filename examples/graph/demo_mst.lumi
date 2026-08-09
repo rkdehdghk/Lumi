@@ -1,0 +1,54 @@
+// demo_mst.lumi -- 최소 신장 트리(MST) 데모
+// 사용법:  c-interpreter\bin\lumi.exe examples\graph\demo_mst.lumi
+//
+// 도시를 최소 비용으로 모두 연결하는 문제(도로/케이블 설계)에서
+// Prim 과 Kruskal 알고리즘이 동일한 최소 비용을 내는지 확인합니다.
+
+bring graph up Graph, prim, kruskal
+
+print("==============================")
+print("  최소 신장 트리(MST) 데모")
+print("  도시를 최소 비용으로 연결하기")
+print("==============================")
+print()
+
+// 6개 마을, 마을 사이 케이블 설치 비용
+val net = Graph()
+net.addEdge("마을1", "마을2", 7)
+net.addEdge("마을1", "마을3", 9)
+net.addEdge("마을1", "마을6", 14)
+net.addEdge("마을2", "마을3", 10)
+net.addEdge("마을2", "마을4", 15)
+net.addEdge("마을3", "마을4", 11)
+net.addEdge("마을3", "마을6", 2)
+net.addEdge("마을4", "마을5", 6)
+net.addEdge("마을5", "마을6", 9)
+
+print("[전체 연결 가능한 케이블]")
+net.show()
+print()
+
+// ---- Prim ----
+val pr = prim(net, "마을1")
+print("[Prim 알고리즘]")
+print("  선택된 간선들:")
+for e in pr["edges"]:
+    print("    " + e[0] + " - " + e[1] + "  (비용 " + e[2] + ")")
+print("  총 설치 비용:", pr["weight"])
+print()
+
+// ---- Kruskal ----
+val kr = kruskal(net)
+print("[Kruskal 알고리즘]")
+print("  선택된 간선들:")
+for e in kr["edges"]:
+    print("    " + e[0] + " - " + e[1] + "  (비용 " + e[2] + ")")
+print("  총 설치 비용:", kr["weight"])
+print()
+
+// ---- 두 알고리즘 결과 비교 ----
+print("[검증] Prim 총비용:", pr["weight"], " / Kruskal 총비용:", kr["weight"])
+if pr["weight"] == kr["weight"]:
+    print("   -> 두 알고리즘이 동일한 최소 비용을 도출했습니다. (정상)")
+else:
+    print("   -> 오류: 두 알고리즘 결과가 다릅니다!")

@@ -1,0 +1,544 @@
+// graph.lumi -- Lumi 그래프 알고리즘 라이브러리
+// ============================================================
+//  가중치 방향/무방향 그래프를 인접 리스트로 표현하고
+//  BFS, DFS, 다익스트라, 벨만-포드, Floyd-Warshall,
+//  Prim, Kruskal, 위상정렬, 사이클 검출 을 제공합니다.
+//
+//  사용법:
+//      bring graph                  // 네임스페이스 사용
+//      val g = graph.Graph()
+//      g.addEdge("A", "B", 4)
+//      ...
+//  또는
+//      bring graph up Graph, dijkstra
+// ============================================================
+
+// 거리의 "무한"을 나타내는 큰 값 (음수 가중치와 구분하기 위해 충분히 큼)
+val INF = 1000000000
+
+// Graph 클래스 ------------------------------------------------
+//  정점은 임의의 해시 가능한 값(문자열/숫자/불리언)을 쓸 수 있다.
+//  간선은 (이웃, 가중치) 튜플로 저장한다.
+class Graph:
+    func init():
+        this.adj = {}              // {정점: [(이웃, 가중치), ...]}
+        this.directed = false
+
+    // 방향 그래프로 전환
+    func setDirected():
+        this.directed = true
+
+    // 가중치 간선 추가. 무방향이면 역방향도 추가.
+    func addEdge(u, v, w):
+        if not (u in this.adj):
+            this.adj[u] = []
+        if not (v in this.adj):
+            this.adj[v] = []
+        this.adj[u] = this.adj[u] + [(v, w)]
+        if not this.directed:
+            this.adj[v] = this.adj[v] + [(u, w)]
+
+    // 가중치 없는 간선(가중치 1)
+    func link(u, v):
+        this.addEdge(u, v, 1)
+
+    // 정점 하나 추가 (간선 없이)
+    func addNode(u):
+        if not (u in this.adj):
+            this.adj[u] = []
+
+    // 모든 정점 리스트 반환
+    func nodes():
+        return keys(this.adj)
+
+    // 정점 u 의 이웃 (거리,이웃) 튜플 리스트
+    func neighbors(u):
+        if not (u in this.adj):
+            return []
+        return this.adj[u]
+
+    // 정점 개수
+    func size():
+        return len(keys(this.adj))
+
+    // 전체 간선을 (u, v, w) 튜플 리스트로 반환 (방향 그래프 기준)
+    func edges():
+        val result = []
+        val seen = {}
+        for u in keys(this.adj):
+            for pair in this.adj[u]:
+                val v = pair[0]
+                val w = pair[1]
+                val key = "" + str(u) + "->" + str(v)
+                result = result + [(u, v, w)]
+        return result
+
+    // 그래프 내용을 읽기 편하게 출력
+    func show():
+        val kind = "undirected"
+        if this.directed:
+            kind = "directed"
+        print("Graph (" + kind + "):")
+        for u in keys(this.adj):
+            print("  ", u, "->", this.adj[u])
+
+
+// ============================================================
+//  BFS (너비 우선 탐색)
+//    start 부터 방문 순서대로 정점 리스트 반환.
+//    큐는 리스트의 앞을 빼는 방식(slice)으로 흉내낸다.
+// ============================================================
+func bfs(graph, start):
+    if not (start in graph.adj):
+        error("KeyError", "시작 정점이 없습니다: " + start)
+    val visited = {}
+    visited[start] = true
+    val order = []
+    val queue = [start]
+    while len(queue) > 0:
+        val cur = queue[0]
+        queue = queue[1:]
+        order = order + [cur]
+        for pair in graph.neighbors(cur):
+            val nb = pair[0]
+            if not (nb in visited):
+                visited[nb] = true
+                queue = queue + [nb]
+    return order
+
+
+// ============================================================
+//  DFS (깊이 우선 탐색) -- 반복문(스택) 버전과 재귀 버전 모두 제공
+// ============================================================
+
+// 스택 기반 반복 버전. 방문 순서 반환.
+func dfs(graph, start):
+    if not (start in graph.adj):
+        error("KeyError", "시작 정점이 없습니다: " + start)
+    val visited = {}
+    val order = []
+    val stack = [start]
+    while len(stack) > 0:
+        val cur = stack[len(stack) - 1]
+        stack = stack[:len(stack) - 1]
+        if cur in visited:
+            continue
+        visited[cur] = true
+        order = order + [cur]
+        // 늦게 넣은 이웃이 먼저 탐색되도록 역순으로 push
+        val nbs = graph.neighbors(cur)
+        val i = len(nbs) - 1
+        while i >= 0:
+            stack = stack + [nbs[i][0]]
+            i = i - 1
+    return order
+
+// 재귀 버전 (내부 visited dict 공유). 방문 순서 반환.
+func dfsRecursive(graph, start):
+    val visited = {}
+    val order = []
+    func visit(node):
+        if node in visited:
+            return
+        visited[node] = true
+        order = order + [node]
+        for pair in graph.neighbors(node):
+            visit(pair[0])
+    visit(start)
+    return order
+
+
+// ============================================================
+//  경로 복원용 보조 함수
+//    prev 딕셔너리(prev[도착] = 이전정점) 와 start/end 로
+//    start->end 경로 리스트를 만든다. 연결이 없으면 빈 리스트.
+// ============================================================
+func reconstructPath(prev, start, end):
+    if not (end in prev) and end != start:
+        return []
+    val path = [end]
+    val cur = end
+    while cur != start:
+        if not (cur in prev):
+            return []
+        cur = prev[cur]
+        path = [cur] + path
+    return path
+
+
+// ============================================================
+//  BFS 최단 경로 (가중치 없음)
+//    start->end 까지의 정점 경로 반환. 없으면 [].
+// ============================================================
+func bfsPath(graph, start, end):
+    if not (start in graph.adj):
+        error("KeyError", "시작 정점이 없습니다: " + start)
+    if start == end:
+        return [start]
+    val prev = {}
+    val visited = {}
+    visited[start] = true
+    val queue = [start]
+    while len(queue) > 0:
+        val cur = queue[0]
+        queue = queue[1:]
+        if cur == end:
+            return reconstructPath(prev, start, end)
+        for pair in graph.neighbors(cur):
+            val nb = pair[0]
+            if not (nb in visited):
+                visited[nb] = true
+                prev[nb] = cur
+                queue = queue + [nb]
+    return []
+
+
+// ============================================================
+//  다익스트라 (음수 가중치 없는 그래프의 최단 경로)
+//    우선순위 큐 대신 (거리, 정점) 튜플 정렬을 이용한
+//    단순 구현(O(V^2) 변종) 으로, 작은 그래프에서 안전하다.
+//    반환: {"dist": {정점: 거리}, "prev": {정점: 이전정점}}
+// ============================================================
+func dijkstra(graph, start):
+    if not (start in graph.adj):
+        error("KeyError", "시작 정점이 없습니다: " + start)
+    val dist = {}
+    val prev = {}
+    for u in graph.nodes():
+        dist[u] = INF
+    dist[start] = 0
+
+    val done = {}
+    val remaining = graph.nodes()
+
+    while len(remaining) > 0:
+        // remaining 중 dist 가 가장 작은 정점 선택
+        val bestU = remaining[0]
+        val bestD = dist[bestU]
+        for cand in remaining:
+            if dist[cand] < bestD:
+                bestU = cand
+                bestD = dist[cand]
+
+        // 선택 정점을 남은 목록에서 제거 (값 기반)
+        val next = []
+        for cand in remaining:
+            if cand != bestU:
+                next = next + [cand]
+        remaining = next
+        done[bestU] = true
+
+        if bestD == INF:
+            continue    // 남은 정점은 도달 불가
+
+        for pair in graph.neighbors(bestU):
+            val v = pair[0]
+            val w = pair[1]
+            if v in done:
+                continue
+            val nd = bestD + w
+            if nd < dist[v]:
+                dist[v] = nd
+                prev[v] = bestU
+    return {"dist": dist, "prev": prev}
+
+
+// 다익스트라 결과로 start->end 경로(정점 리스트) 반환. 없으면 [].
+func dijkstraPath(graph, start, end):
+    val r = dijkstra(graph, start)
+    if r["dist"][end] == INF:
+        return []
+    return reconstructPath(r["prev"], start, end)
+
+
+// ============================================================
+//  벨만-포드 (음수 가중치 허용, 음수 사이클 검출)
+//    반환: {"dist": {정점: 거리}, "prev": {정점: 이전정점},
+//           "negCycle": true/false, "negCycleNodes": [...]}
+// ============================================================
+func bellmanFord(graph, start):
+    if not (start in graph.adj):
+        error("KeyError", "시작 정점이 없습니다: " + start)
+    val dist = {}
+    val prev = {}
+    for u in graph.nodes():
+        dist[u] = INF
+    dist[start] = 0
+
+    val V = graph.size()
+    val edgeList = graph.edges()
+
+    // V-1 회 완화
+    val i = 0
+    while i < V - 1:
+        val e = graph.edges()
+        for tup in e:
+            val u = tup[0]
+            val v = tup[1]
+            val w = tup[2]
+            if dist[u] != INF and dist[u] + w < dist[v]:
+                dist[v] = dist[u] + w
+                prev[v] = u
+        i = i + 1
+
+    // 한 번 더 완화해서 줄어들면 음수 사이클 존재
+    val negNodes = []
+    for tup in graph.edges():
+        val u = tup[0]
+        val v = tup[1]
+        val w = tup[2]
+        if dist[u] != INF and dist[u] + w < dist[v]:
+            negNodes = negNodes + [v]
+
+    return {"dist": dist, "prev": prev, "negCycle": len(negNodes) > 0, "negCycleNodes": negNodes}
+
+
+// ============================================================
+//  Floyd-Warshall (모든 쌍 최단 경로)
+//    정점을 0..n-1 인덱스로 매핑하여 인접 행렬을 만든다.
+//    반환: {"matrix": 2중 리스트, "index": {정점: 인덱스}, "names": [정점]}
+// ============================================================
+func floydWarshall(graph):
+    val names = graph.nodes()
+    val n = len(names)
+    val index = {}
+    val k = 0
+    while k < n:
+        index[names[k]] = k
+        k = k + 1
+
+    // 행렬 초기화: 대각선 0, 나머지 INF
+    val dist = []
+    val i = 0
+    while i < n:
+        val row = []
+        val j = 0
+        while j < n:
+            if i == j:
+                row = row + [0]
+            else:
+                row = row + [INF]
+            j = j + 1
+        dist = dist + [row]
+        i = i + 1
+
+    // 간선 가중치 반영 (다중 간선/음수 대비 최소값)
+    for tup in graph.edges():
+        val u = tup[0]
+        val v = tup[1]
+        val w = tup[2]
+        val iu = index[u]
+        val iv = index[v]
+        if w < dist[iu][iv]:
+            dist[iu][iv] = w
+
+    // 삼중 루프 완화
+    val t = 0
+    while t < n:
+        val a = 0
+        while a < n:
+            val b = 0
+            while b < n:
+                if dist[a][t] + dist[t][b] < dist[a][b]:
+                    dist[a][b] = dist[a][t] + dist[t][b]
+                b = b + 1
+            a = a + 1
+        t = t + 1
+
+    return {"matrix": dist, "index": index, "names": names}
+
+
+// ============================================================
+//  Prim 알고리즘 (최소 신장 트리, 무방향 연결 그래프)
+//    반환: {"weight": 총가중치, "edges": [(u, v, w), ...]}
+// ============================================================
+func prim(graph, start):
+    if not (start in graph.adj):
+        error("KeyError", "시작 정점이 없습니다: " + start)
+    if graph.directed:
+        error("ValueError", "Prim 은 무방향 그래프에서 동작합니다")
+    val inTree = {}
+    inTree[start] = true
+    val treeEdges = []
+    val total = 0
+    val count = 1
+    val n = graph.size()
+
+    while count < n:
+        // inTree 정점에서 inTree 아닌 정점으로 가는 최소 간선 찾기
+        val bestW = INF
+        val bestU = "!"        // 표식 (실제 정점과 겹치지 않는 임의값)
+        val bestV = []         // 빈 리스트 == "아직 못 찾음" 표식
+        for u in keys(inTree):
+            for pair in graph.neighbors(u):
+                val v = pair[0]
+                val w = pair[1]
+                if not (v in inTree) and w < bestW:
+                    bestW = w
+                    bestU = u
+                    bestV = v
+        if len(bestV) == 0:
+            break    // 더 이상 연결할 정점이 없음 (연결 성분 분리)
+        inTree[bestV] = true
+        treeEdges = treeEdges + [(bestU, bestV, bestW)]
+        total = total + bestW
+        count = count + 1
+
+    return {"weight": total, "edges": treeEdges}
+
+
+// ============================================================
+//  Kruskal 알고리즘 (최소 신장 트리, Union-Find 사용)
+//    반환: {"weight": 총가중치, "edges": [(u, v, w), ...]}
+// ============================================================
+
+// Union-Find (서로소 집합)
+class UnionFind:
+    func init(items):
+        this.parent = {}
+        this.rank = {}
+        for x in items:
+            this.parent[x] = x
+            this.rank[x] = 0
+    func find(x):
+        // 경로 압축 (반복)
+        val root = x
+        while this.parent[root] != root:
+            root = this.parent[root]
+        val cur = x
+        while this.parent[cur] != root:
+            val nxt = this.parent[cur]
+            this.parent[cur] = root
+            cur = nxt
+        return root
+    func union(a, b):
+        val ra = this.find(a)
+        val rb = this.find(b)
+        if ra == rb:
+            return false
+        if this.rank[ra] < this.rank[rb]:
+            this.parent[ra] = rb
+        elif this.rank[ra] > this.rank[rb]:
+            this.parent[rb] = ra
+        else:
+            this.parent[rb] = ra
+            this.rank[ra] = this.rank[ra] + 1
+        return true
+
+func kruskal(graph):
+    if graph.directed:
+        error("ValueError", "Kruskal 은 무방향 그래프에서 동작합니다")
+    val uf = UnionFind(graph.nodes())
+    // 무방향 그래프이므로 양방향 간선을 중복 피하기 위해
+    // 한 쪽(인덱스 작은쪽)만 취급하는 대신, 정렬 후 union 결과로 중복 무시
+    val all = []
+    for u in graph.nodes():
+        for pair in graph.neighbors(u):
+            val v = pair[0]
+            val w = pair[1]
+            all = all + [(w, u, v)]
+    val sortedEdges = sort(all)
+
+    val treeEdges = []
+    val total = 0
+    for tup in sortedEdges:
+        val w = tup[0]
+        val u = tup[1]
+        val v = tup[2]
+        if uf.union(u, v):
+            treeEdges = treeEdges + [(u, v, w)]
+            total = total + w
+    return {"weight": total, "edges": treeEdges}
+
+
+// ============================================================
+//  위상 정렬 (Kahn 알고리즘, 방향 비순환 그래프)
+//    반환: {"order": [정점], "hasCycle": true/false}
+// ============================================================
+func topologicalSort(graph):
+    if not graph.directed:
+        error("ValueError", "위상 정렬은 방향 그래프에서 동작합니다")
+
+    // 진입 차수 계산
+    val indeg = {}
+    for u in graph.nodes():
+        indeg[u] = 0
+    for u in graph.nodes():
+        for pair in graph.neighbors(u):
+            val v = pair[0]
+            indeg[v] = indeg[v] + 1
+
+    // 진입 차수 0 인 정점을 큐에
+    val queue = []
+    for u in graph.nodes():
+        if indeg[u] == 0:
+            queue = queue + [u]
+
+    val order = []
+    while len(queue) > 0:
+        val cur = queue[0]
+        queue = queue[1:]
+        order = order + [cur]
+        for pair in graph.neighbors(cur):
+            val v = pair[0]
+            indeg[v] = indeg[v] - 1
+            if indeg[v] == 0:
+                queue = queue + [v]
+
+    val hasCycle = len(order) != graph.size()
+    return {"order": order, "hasCycle": hasCycle}
+
+
+// ============================================================
+//  사이클 검출 (방향 그래프, DFS 색칠법)
+//    반환: true 이면 사이클 존재
+//    내부 재귀 함수 dfsCycleVisit 을 통해 GRAY 정점 재방문으로 사이클 판별.
+// ============================================================
+
+// (모듈 전역) 색상/상태 를 캡처하는 보조 타입 대신, 그래프별로
+//  상태를 매개변수로 전달하는 helper 들을 둔다.
+func _dfsCycleVisit(graph, u, color, state):
+    // state: {"found": true/false} -- 클로저 없이 dict 로 상태 공유
+    if state["found"]:
+        return
+    color[u] = 1        // GRAY
+    for pair in graph.neighbors(u):
+        val v = pair[0]
+        val c = color[v]
+        if c == 0:      // WHITE
+            _dfsCycleVisit(graph, v, color, state)
+        elif c == 1:    // GRAY -> 역간선 -> 사이클
+            state["found"] = true
+            return
+    color[u] = 2        // BLACK
+
+func hasCycle(graph):
+    if not graph.directed:
+        error("ValueError", "이 함수는 방향 그래프용입니다")
+    val color = {}
+    for u in graph.nodes():
+        color[u] = 0
+    val state = {"found": false}
+    for u in graph.nodes():
+        if color[u] == 0:
+            _dfsCycleVisit(graph, u, color, state)
+            if state["found"]:
+                return true
+    return state["found"]
+
+
+// ============================================================
+//  연결 성분 개수 (무방향 그래프, BFS)
+// ============================================================
+func countComponents(graph):
+    if graph.directed:
+        error("ValueError", "이 함수는 무방향 그래프용입니다")
+    val visited = {}
+    val comps = 0
+    for u in graph.nodes():
+        if not (u in visited):
+            comps = comps + 1
+            val order = bfs(graph, u)
+            for w in order:
+                visited[w] = true
+    return comps

@@ -1,0 +1,82 @@
+// Type conversion (casting) in Lumi.
+// Every data type name can also be CALLED as a function to convert a value.
+//   int  float  num  char  str  text  bool  list  tuple  dict  seq
+//
+// Remember:  int x = 5   is a DECLARATION (it checks the value fits the type)
+//            int(5)      is a CALL        (it converts the value to that type)
+
+print("=== numbers ===")
+print(int("42"))        // 42     text that looks like a number
+print(int(3.9))         // 3      the part after the point is dropped
+print(int(-3.9))        // -3
+print(int(true))        // 1      true -> 1, false -> 0
+print(float(7))         // 7      stored as 7.0 (see type() below)
+print(float("3.5"))     // 3.5
+print(num("42"))        // 42     whole number text  -> int
+print(num("3.5"))       // 3.5    decimal text       -> float
+print(type(float(7)))   // float
+
+print("=== characters ===")
+print(char(65))         // A      a code number -> that character
+print(char("hello"))    // h      only the first letter is kept
+print(int("A"))         // 65     one letter -> its character code
+// counting up through the alphabet with codes
+char letter = "A"
+print(char(int(letter) + 1))    // B
+
+print("=== text ===")
+print(str(3.14))              // 3.14
+print(str(true))              // true
+print(str([1, 2]))            // [1, 2]
+print(text(12))               // 12      text() is the same as str()
+val score = 5
+print("점수: " + str(score) + "점")
+
+print("=== true / false ===")
+print(bool(0))          // false
+print(bool(7))          // true
+print(bool(""))         // false   empty text is false
+print(bool("a"))        // true
+print(bool([]))         // false   an empty list is false
+print(bool([0]))        // true    ...but a list holding something is true
+val xs = [1, 2, 3]
+if bool(len(xs)):
+    print("리스트에 값이 있어요")
+
+print("=== lists and tuples ===")
+print(list("abc"))          // ["a", "b", "c"]   a string -> its letters
+print(list((1, 2, 3)))      // [1, 2, 3]         a tuple  -> a list
+print(tuple([1, 2, 3]))     // (1, 2, 3)         a list   -> a tuple
+// a tuple cannot be changed, so make a list first, edit, then freeze it again
+val point = (1, 2)
+val editable = list(point)
+editable[0] = 99
+print(tuple(editable))      // (99, 2)
+
+print("=== dictionaries ===")
+val d = {"a": 1, "b": 2}
+print(list(d))                      // ["a", "b"]   a dictionary -> its keys
+print(dict([["x", 1], ["y", 2]]))   // {"x": 1, "y": 2}
+val copy = dict(d)                  // a copy: changing it leaves d alone
+copy["a"] = 100
+print(d, copy)                      // {"a": 1, "b": 2} {"a": 100, "b": 2}
+
+print("=== seq: the sequence family ===")
+print(seq("abc"))       // abc       a string stays a string
+print(seq([1, 2]))      // [1, 2]
+print(seq(d))           // ["a", "b"]
+
+print("=== bytes: text turned into numbers ===")
+print(bytes([72, 73]))      // bytes[48 49]   numbers (0-255) -> a bytes object
+print(list(encode("hi")))   // [104, 105]     a bytes object  -> its numbers
+// text needs an encoding to become bytes, so use encode(...) for that
+print(encode("hi"))         // bytes[68 69]
+print(decode(encode("hi"))) // hi
+
+print("=== input is always text ===")
+// val age = num(input("나이: "))
+// print("내년엔", age + 1, "살")
+
+print("=== a value that cannot be converted is an error ===")
+// print(int("사과"))    // Error: int cannot turn "사과" into a number
+// print(list(5))        // Error: list needs a string, list, tuple, or dictionary

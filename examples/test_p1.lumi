@@ -1,0 +1,62 @@
+// Lumi Priority 1 Engine Verification (Hash Table Dict & Cyclic GC)
+
+print("=== 1. Hash Table Dict Performance Test (10,000 Items) ===")
+val t0 = clock()
+
+val d = {}
+for val i = 0, i < 10000, i = i + 1:
+    val k = "key_" + str(i)
+    d[k] = i * 2
+
+val t1 = clock()
+print("10,000 items inserted in:", format(t1 - t0, "{:.4f}"), "seconds")
+
+val t2 = clock()
+val sum = 0
+for val i = 0, i < 10000, i = i + 1:
+    val k = "key_" + str(i)
+    val v = d[k]
+    sum = sum + v
+
+val t3 = clock()
+print("10,000 items retrieved in:", format(t3 - t2, "{:.4f}"), "seconds")
+print("Sum check:", sum)
+
+print("")
+print("=== 2. Key Equality Test (1 == 1.0, but 1 != true) ===")
+// A key must match in VALUE and in KIND.
+//   numbers match by value : 1 and 1.0 are the same key
+//   true/false are not numbers : 1 and true are DIFFERENT keys
+// (this is on purpose, and differs from python -- see the manual, "Key Identity Rule")
+val d2 = {}
+d2[1] = "integer one"
+print("d2[1.0] =", d2[1.0])          // same key as 1
+print("has(d2, true) =", has(d2, true))   // false: true is its own key
+
+d2[true] = "boolean true"
+print("After update d2[1] =", d2[1])      // still "integer one"
+print("d2[true] =", d2[true])
+print("how many keys =", len(d2))         // 2
+print("but 1 == true is still", 1 == true)
+
+print("")
+print("=== 3. Cyclic Garbage Collection Test ===")
+class Node:
+    func init(name):
+        this.name = name
+        this.other = none
+
+func create_cycle():
+    val a = Node("A")
+    val b = Node("B")
+    a.other = b
+    b.other = a    // Cycle: A -> B -> A
+
+create_cycle()      // Function ends, local vars a & b drop out of stack/env, leaving only cyclic self-references!
+
+print("Triggering Cyclic GC after function scope exit...")
+val collected = gc()
+print("Collected cyclic objects:", collected)
+
+print("")
+print("=== Priority 1 Verification Completed Successfully! ===")

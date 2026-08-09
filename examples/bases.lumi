@@ -1,0 +1,61 @@
+// Number bases (진수) in Lumi: 2진수(bin) / 10진수(num) / 16진수(hex)
+//
+// The big idea: a number is always just a number.
+// A base is only the WAY we write it down.
+//   0b1011  and  11  and  0xb   are all the very same value.
+
+print("=== 진법 리터럴 (writing a number in another base) ===")
+print(0b1011)           // 11    0b... is binary
+print(0xff)             // 255   0x... is hexadecimal
+print(11)               // 11    plain digits are decimal
+print(0b1011 == 11)     // true  same value, written two ways
+print(0xFF == 255)      // true  capital letters are fine too
+
+print("=== bin() / hex() : 수를 그 진법 표기로 ===")
+print(bin(11))          // 0b1011
+print(hex(255))         // 0xff
+print(bin(255))         // 0b11111111
+print(hex(4095))        // 0xfff
+print(bin(-10))         // -0b1010    the minus sign stays in front
+print(type(bin(11)))    // str        the result is TEXT, not a number
+
+print("=== num() : 어떤 진법 표기든 다시 10진수로 ===")
+print(num("0b1011"))    // 11
+print(num("0xff"))      // 255
+print(num("42"))        // 42     no marker -> decimal, as before
+print(num("-0x10"))     // -16
+print(int("0b1011"))    // 11     int() and float() read them too
+print(float("0xff"))    // 255
+
+print("=== 왕복하기 (round trip) ===")
+val n = 200
+print(n, bin(n), hex(n))            // 200 0b11001000 0xc8
+print(num(bin(n)) == n)             // true
+print(num(hex(n)) == n)             // true
+
+print("=== 계산은 언제나 10진수로 (arithmetic is base-free) ===")
+print(0b1010 + 0b0101)              // 15    (10 + 5)
+print(0xff * 2)                     // 510
+print(0b1100 & 0b1010)              // 8     bitwise AND on binary literals
+print(bin(0b1100 & 0b1010))         // 0b1000
+print(bin(1 << 4))                  // 0b10000
+
+print("=== 표 만들기 (a small conversion table) ===")
+print("10진수\t2진수\t16진수")
+for n in forr(val i = 0, i <= 16, i += 4):
+    print(n, "\t", bin(n), "\t", hex(n))
+
+print("=== 색깔 코드처럼 쓰기 (a practical use) ===")
+val red = 0xff
+val green = 0x80
+val blue = 0x00
+print("R", red, hex(red))           // R 255 0xff
+print("G", green, hex(green))       // G 128 0x80
+print("B", blue, hex(blue))         // B 0 0x0
+
+print("=== 잘못 쓰면 오류 (errors) ===")
+// print(0b1012)        // Error: '0b1012' is not a valid binary number
+// print(0xzz)          // Error: '0xzz' is not a valid hexadecimal number
+// print(0b1010.5)      // Error: a binary number cannot have a point (.)
+// print(bin(3.5))      // Error: bin needs a whole number
+// print(num("0b12"))   // Error: num cannot turn "0b12" into a number

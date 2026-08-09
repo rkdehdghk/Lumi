@@ -1,0 +1,57 @@
+// demo_dag.lumi -- 방향 그래프 응용 데모 (위상정렬 / 사이클 검출)
+// 사용법:  c-interpreter\bin\lumi.exe examples\graph\demo_dag.lumi
+//
+// 1) 작업 스케줄링: 위상 정렬로 작업 순서를 정한다.
+// 2) 의존성 사이클 검출: 빌드 순서에 순환 의존성이 있는지 찾는다.
+
+bring graph up Graph, topologicalSort, hasCycle
+
+print("==============================")
+print("  방향 그래프 응용 데모")
+print("  (위상 정렬 / 사이클 검출)")
+print("==============================")
+print()
+
+// ---- 1) 프로젝트 작업 순서 (DAG) ----
+val tasks = Graph()
+tasks.setDirected()
+tasks.addEdge("요구사항", "설계", 1)
+tasks.addEdge("설계", "UI구현", 1)
+tasks.addEdge("설계", "DB구축", 1)
+tasks.addEdge("DB구축", "백엔드", 1)
+tasks.addEdge("UI구현", "프론트", 1)
+tasks.addEdge("백엔드", "통합테스트", 1)
+tasks.addEdge("프론트", "통합테스트", 1)
+tasks.addEdge("통합테스트", "배포", 1)
+
+print("[작업 의존성 그래프]")
+tasks.show()
+print()
+
+val result = topologicalSort(tasks)
+print("[위상 정렬 결과] 사이클 있음?:", result["hasCycle"])
+print("[추천 작업 순서]:")
+val order = result["order"]
+for i in forr(val n = 0, n < len(order), n = n + 1):
+    print("   " + (i + 1) + ". " + order[i])
+print()
+
+// ---- 2) 사이클 검출 (순환 의존성) ----
+print("[의존성 사이클 검출]")
+// 정상 패키지 (사이클 없음)
+val pkg = Graph()
+pkg.setDirected()
+pkg.addEdge("core", "utils", 1)
+pkg.addEdge("app", "core", 1)
+pkg.addEdge("app", "ui", 1)
+print("  패키지 그래프 'pkg' 사이클:", hasCycle(pkg), "(false 여야 정상)")
+
+// 순환 의존 발생
+val bad = Graph()
+bad.setDirected()
+bad.addEdge("A", "B", 1)
+bad.addEdge("B", "C", 1)
+bad.addEdge("C", "A", 1)     // A->B->C->A 순환
+print("  패키지 그래프 'bad' 사이클:", hasCycle(bad), "(true 여야 정상)")
+val tsBad = topologicalSort(bad)
+print("  'bad' 위상정렬 불가 -> hasCycle:", tsBad["hasCycle"], " order:", tsBad["order"])

@@ -1,0 +1,22 @@
+# 빌드 산출물
+c-interpreter/bin/
+c-interpreter/build/
+ide-cpp/bin/
+ide-cpp/build/
+ide-cpp/tests/build/
+
+# 테스트가 매번 새로 쓰는 것 (골든은 tests/expected/ 이고 그건 저장합니다)
+tests/actual/
+
+# fmt 시험이 messy.src 에서 만들어 내는 사본 (원본은 messy.src)
+tests/fmt/messy.lumi
+
+# 편집기·운영체제가 흘리는 것
+.vscode/
+.idea/
+*.user
+Thumbs.db
+.DS_Store
+
+# 빌드 도구가 남기는 로그
+aqtinstall.log

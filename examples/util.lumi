@@ -1,0 +1,48 @@
+// 알짜 유틸 (Utilities) in Lumi
+//
+// 유틸 내장 함수 6가지:  rand  filter  sum  clamp  env (= getenv)
+// 자주 쓰지만 직접 짜기는 번거로운 것들만 모았습니다.
+
+// --- 1. rand([최소, 최대]) : 무작위 ---
+//   rand()         -> 0.0 ~ 1.0 사이의 실수
+//   rand(n)        -> 1 ~ n 사이의 정수 (주사위)
+//   rand(a, b)     -> a ~ b 사이의 정수
+//   rand(시퀀스)   -> 그중 하나를 뽑기 (제비뽑기)
+print("1. rand():", rand())
+print("2. rand(6):", rand(6))
+print("3. rand(10, 20):", rand(10, 20))
+val picked = rand(["사과", "바나나", "포도"])
+print("4. rand(리스트):", picked)
+
+// --- 2. filter(함수, 시퀀스) : 조건에 맞는 것만 남기기 ---
+// each 가 '값마다 바꾸기'라면, filter 는 '값마다 물어보고 고르기'입니다.
+// 담은 모양을 그대로 지킵니다 (리스트->리스트, 튜플->튜플, 문자열->문자열).
+func is_even(x):
+    return x % 2 == 0
+
+val evens = filter(is_even, [1, 2, 3, 4, 5, 6])
+print("5. filter(is_even, [1..6]):", evens)               // [2, 4, 6]
+
+// 이름 없는 한 줄 함수와도 잘 어울립니다
+print("   filter(func x: x > 3, [1..6]):", filter(func x: x > 3, [1, 2, 3, 4, 5, 6]))
+
+// 문자열을 걸러 내면 문자열이, 튜플을 걸러 내면 튜플이 나옵니다
+print("   filter(모음, \"sequence\"):", filter(func c: c in "aeiou", "sequence"))   // euee
+print("   filter(func x: x > 3, (1,2,3,4)):", filter(func x: x > 3, (1, 2, 3, 4))) // (4,)
+
+// --- 3. sum(시퀀스) : 숫자를 모두 더하기 ---
+// 정수만 있으면 정수, 실수가 하나라도 섞이면 실수로 돌려줍니다.
+val total = sum([10, 20, 30, 40])
+print("6. sum([10, 20, 30, 40]):", total)                 // 100
+
+// --- 4. clamp(값, 최소, 최대) : 값을 범위 안으로 붙들어 두기 ---
+print("7. clamp(120, 0, 100):", clamp(120, 0, 100))       // 100  (넘치면 최대로)
+print("8. clamp(-5, 0, 100):", clamp(-5, 0, 100))         // 0    (모자라면 최소로)
+print("9. clamp(50, 0, 100):", clamp(50, 0, 100))         // 50   (안이면 그대로)
+
+// --- 5. env(이름) : 운영체제의 환경 변수 읽기 (없는 이름이면 none) ---
+val user = env("USERNAME")
+print("10. env('USERNAME'):", user)
+print("    없는 이름이면:", env("LUMI_NO_SUCH_VAR"))       // none
+
+print("\n모든 유틸리티 내장 함수 테스트 성공!")

@@ -1,0 +1,82 @@
+=== 전체 바꾸기 (어디를 안 적으면 전부) ===
+hello world
+HELLO WORLD
+lumi language
+
+=== 한 글자만 바꾸기 ===
+Hello world
+hello World
+hello worlD
+hELLO
+
+=== 구간으로 바꾸기 (슬라이싱과 같은 방식) ===
+HELLO world
+HELLO world
+hello WORLD
+HELLO WORLD
+hello world
+heLLO world
+heLLO WORLD
+
+=== 자리 리스트로 바꾸기 (떨어져 있는 자리들) ===
+Hello World
+AbCdEf
+ABc
+abc
+
+=== 원래 문자열은 그대로 있어요 ===
+hello world
+HELLO WORLD
+
+=== 대소문자가 없는 글자는 그대로 지나가요 ===
+LUMI 2026!
+루미 LUMI
+
+=== 이름처럼 첫 글자만 대문자로 ===
+Hong
+Lumi
+
+=== 찾은 자리만 바꾸기 (infind 와 함께) ===
+[4, 7]
+hellO wOrld
+
+=== 단어마다 첫 글자를 대문자로 ===
+[0, 6]
+Hello World
+
+=== 검사하고 나서 바꾸기 ===
+쓸 수 있는 아이디: lumi2026
+
+=== 공백 지우기 (strip) - 적는 법은 위와 똑같아요 ===
+a b c d
+abcd
+안녕하세요
+
+=== 자리 / 구간 / 리스트로 골라 지우기 ===
+ab c d
+a b c d
+ab c d
+a bcd
+abcd
+ab cd
+a b c d
+
+=== 자리 번호는 '지우기 전' 문자열 기준이에요 ===
+abcd
+a b c d
+
+=== 탭과 줄바꿈도 공백이에요 ===
+탭줄끝
+
+=== 입력에 섞인 공백 털어내기 ===
+43
+
+=== 앞뒤만 털고 가운데 띄어쓰기는 남기기 ===
+안녕 하세요
+
+=== 공백 자리를 찾아서 하나만 지우기 ===
+[1, 3, 5]
+ab c d
+
+=== 셋을 함께 쓰기 ===
+Honggildong

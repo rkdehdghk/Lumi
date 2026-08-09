@@ -1,0 +1,123 @@
+// 파일 하나짜리 데이터베이스 (bring sqlite)
+//
+//   sqlite.open(경로)                     -> db      (":memory:" 면 기억 장치에만)
+//   sqlite.run(sql, db, [값들])            -> 바뀐 줄 수
+//   sqlite.rows(sql, db, [값들])           -> 딕셔너리 리스트
+//   sqlite.one / sqlite.value             -> 첫 줄 / 첫 칸
+//   sqlite.tx(함수, db)                    -> 한 묶음으로 (터지면 되돌립니다)
+//
+// SQLite 가 없는 컴퓨터에서도 이 예제는 끝까지 돕니다 — 없으면 건너뜁니다.
+
+func 있나():
+    try:
+        bring sqlite
+        return true
+    catch e:
+        return false
+
+// SQLite 가 없는 컴퓨터에서는 여기서 끝냅니다.
+// (Lumi 에는 맨 바깥에서 쓰는 return 이 없어서, 본문을 if 안에 둡니다)
+if not 있나():
+    print("이 컴퓨터에는 SQLite 가 없어 건너뜁니다.")
+    print("윈도우 10 이상·맥에는 기본으로 있고, 리눅스는 libsqlite3 을 깔면 됩니다.")
+else:
+
+    bring sqlite
+
+
+    print("=== 1. 왜 파일이 아니라 데이터베이스인가 ===")
+    print("JSON 이나 CSV 로 자료를 두면 이런 것들이 안 됩니다:")
+    print("  * 10만 줄 중 한 줄 고치려고 파일 전체를 다시 씁니다")
+    print("  * 조건으로 찾으려면 전부 훑습니다 (색인이 없습니다)")
+    print("  * 두 프로그램이 같이 쓰면 한쪽 내용이 날아갑니다")
+    print("  * 쓰다가 전원이 나가면 파일 전체를 못 읽게 됩니다")
+    print("데이터베이스는 이 넷을 다 해결합니다. 그런데 파일은 여전히 하나입니다.")
+    print("")
+
+
+    print("=== 2. 열고 표 만들기 ===")
+    // ":memory:" 는 기억 장치에만 두는 데이터베이스입니다 (프로그램이 끝나면 사라집니다)
+    val db = sqlite.open(":memory:")
+    sqlite.run("create table 손님(번호 integer primary key, 이름 text, 나이 int, 키 real)", db)
+    print("표들:", sqlite.tables(db))
+    print("")
+
+
+    print("=== 3. 값은 반드시 ? 자리로 ===")
+    sqlite.run("insert into 손님(이름, 나이, 키) values(?, ?, ?)", db, ["루미", 3, 1.75])
+    sqlite.run("insert into 손님(이름, 나이, 키) values(?, ?, ?)", db, ["나비", 7, 0.30])
+    sqlite.run("insert into 손님(이름, 나이, 키) values(?, ?, ?)", db, ["동글", 1, 0.95])
+    print("넣은 줄의 번호:", sqlite.lastid(db))
+    print("")
+    print("절대 이렇게 하지 마세요:")
+    print("  sqlite.run(\"... where 이름 = '\" + 입력 + \"'\", db)")
+    print("이렇게 하세요:")
+    print("  sqlite.run(\"... where 이름 = ?\", db, [입력])")
+    print("")
+    // 왜 그런지 직접 보여 드립니다 — 표를 지우려 드는 글자를 그냥 이름으로 넣습니다
+    sqlite.run("insert into 손님(이름) values(?)", db, ["'); drop table 손님; --"])
+    print("표를 지우려는 글자를 이름으로 넣어 봤습니다. 표가 아직 있나:", sqlite.hastable("손님", db))
+    print("그냥 이름 글자로 들어갔을 뿐입니다.")
+    print("")
+
+
+    print("=== 4. 찾기 ===")
+    for 줄 in sqlite.rows("select 이름, 나이, 키 from 손님 where 나이 >= ? order by 나이", db, [3]):
+        print("  ", 줄["이름"], "/", 줄["나이"], "살 /", 줄["키"], "m")
+    print("")
+    print("모두 몇 명:", sqlite.value("select count(*) from 손님", db))
+    print("나이 합계  :", sqlite.value("select sum(나이) from 손님", db))
+    print("한 줄만    :", sqlite.one("select 이름 from 손님 where 이름 = ?", db, ["루미"]))
+    print("없으면     :", sqlite.one("select 이름 from 손님 where 이름 = ?", db, ["없음"]))
+    print("")
+
+
+    print("=== 5. 한 묶음으로 (터지면 되돌립니다) ===")
+    sqlite.run("create table 통장(이름 text, 돈 int)", db)
+    sqlite.run("insert into 통장 values('가', 1000)", db)
+    sqlite.run("insert into 통장 values('나', 0)", db)
+
+    func 옮기기(얼마):
+        sqlite.run("update 통장 set 돈 = 돈 - ? where 이름 = '가'", db, [얼마])
+        // 여기서 프로그램이 터진다고 해 봅시다
+        if 얼마 > 500:
+            error("ValueError", "한 번에 500 넘게는 못 옮깁니다")
+        sqlite.run("update 통장 set 돈 = 돈 + ? where 이름 = '나'", db, [얼마])
+
+    try:
+        sqlite.tx(func: 옮기기(900), db)
+    catch e:
+        print("실패:", e.message)
+    print("가의 돈:", sqlite.value("select 돈 from 통장 where 이름 = '가'", db), " <- 안 줄었습니다")
+    print("한 묶음 안에서 터지면 **하나도 안 한 것으로** 되돌립니다.")
+    print("")
+
+    sqlite.tx(func: 옮기기(300), db)
+    print("300 옮긴 뒤 — 가:", sqlite.value("select 돈 from 통장 where 이름 = '가'", db),
+          "/ 나:", sqlite.value("select 돈 from 통장 where 이름 = '나'", db))
+    print("")
+
+
+    print("=== 6. 자료형은 그대로 오갑니다 ===")
+    sqlite.run("create table 갖가지(i int, f real, s text, b blob, n int)", db)
+    sqlite.run("insert into 갖가지 values(?, ?, ?, ?, ?)", db,
+               [42, 3.14, "한글도 됩니다", encode("바이트"), none])
+    val 하나 = sqlite.one("select * from 갖가지", db)
+    print("  int  :", 하나["i"], type(하나["i"]))
+    print("  real :", 하나["f"], type(하나["f"]))
+    print("  text :", 하나["s"], type(하나["s"]))
+    print("  blob :", decode(하나["b"]), type(하나["b"]))
+    print("  null :", 하나["n"], type(하나["n"]))
+    print("")
+
+    sqlite.close(db)
+
+
+    print("=== 7. 어떻게 만들어졌나 ===")
+    print("libraries/sqlite.lumi 는 전부 Lumi 로 적혀 있고, 안에서 ccall 로 운영체제에")
+    print("이미 있는 SQLite 를 직접 부릅니다 (윈도우 winsqlite3.dll / 맥 libsqlite3.dylib).")
+    print("저장소에 25만 줄짜리 sqlite3.c 를 넣지 않아도 되는 까닭입니다.")
+    print("")
+    print("ccall 은 Lumi 에서 가장 위험한 자리입니다 — 서명을 한 글자만 틀려도 프로그램이")
+    print("그냥 죽습니다. 그래서 규칙이 있습니다: **ccall 은 배관이고, 물건은 라이브러리다.**")
+    print("보통 쓰는 사람은 sqlite.run 만 쓰고 ccall 은 볼 일이 없습니다.")

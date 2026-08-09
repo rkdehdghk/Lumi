@@ -1,0 +1,71 @@
+// 시간 다루기 (Time) in Lumi
+//
+// 시간 내장 함수 14가지:
+//   time  now  sleep  clock  date  timeformat  timeparse  timezone
+//   dateadd  datediff  isleap  timed  uptime  runtime
+//
+// 이 가족의 기본 단위는 '타임스탬프'입니다 — 1970년 1월 1일부터 몇 초가
+// 흘렀는지를 담은 실수 하나. 사람이 읽는 글자로 바꿀 때 now/timeformat 을,
+// 사람이 적은 글자를 되돌릴 때 timeparse 를 씁니다.
+
+// --- 1. time() : 지금의 타임스탬프 (초, 실수) ---
+val t1 = time()
+print("1. 현재 타임스탬프 (time):", t1)
+
+// --- 2. now([서식]) : 지금을 사람이 읽는 글자로 (기본 서식 "%Y-%m-%d %H:%M:%S") ---
+val n1 = now()
+val n2 = now("%Y년 %m월 %d일")          // 서식 글자는 그대로 남고 %Y 같은 표시만 바뀝니다
+print("2. 현재 날짜시각 (now):", n1)
+print("   - 커스텀 서식 (now):", n2)
+
+// --- 3. clock() 과 sleep(초) : 걸린 시간 재기 ---
+// clock 은 '뒤로 가지 않는 시계'라 두 번 재서 빼면 걸린 시간이 나옵니다.
+val start_clock = clock()
+sleep(0.1)                              // 0.1초 동안 잠깐 멈춥니다
+val end_clock = clock()
+print("3. clock()으로 측정한 0.1초 대기 소요시간:", end_clock - start_clock, "초")
+
+// --- 4. date([타임스탬프]) : 연·월·일·시·분·초를 딕셔너리로 ---
+// 키: year month day hour minute second millisecond weekday yearday timestamp formatted
+val d = date()
+print("4. date() 날짜 정보:")
+print("   - 연/월/일:", d["year"], "년", d["month"], "월", d["day"], "일")
+print("   - 시/분/초:", d["hour"], "시", d["minute"], "분", d["second"], "초")
+print("   - 자동 포맷팅 (formatted):", d["formatted"])
+
+// --- 5. timeformat(서식[, 타임스탬프]) : 타임스탬프를 글자로 ---
+val formatted_str = timeformat("%Y-%m-%d %H:%M:%S", t1)
+print("5. timeformat 포맷팅 결과:", formatted_str)
+
+// --- 6. timeparse(날짜글자, 서식) : 글자를 타임스탬프로 (timeformat 의 반대) ---
+val parsed_t = timeparse("2026-08-01 12:00:00", "%Y-%m-%d %H:%M:%S")
+print("6. timeparse 변환 결과 (타임스탬프):", parsed_t)
+
+// --- 7. timezone() : 이 컴퓨터의 시간대 (UTC 와 몇 초 차이인지 + 이름) ---
+val tz = timezone()
+print("7. timezone 정보: UTC 오프셋 = ", tz["offset"], "초 (", tz["name"], ")")
+
+// --- 8. dateadd(타임스탬프, 얼마, 단위) : 날짜 더하기·빼기 ---
+// 단위: seconds minutes hours days weeks months years (음수를 주면 빼기)
+val t_plus_3d = dateadd(t1, 3, "days")
+print("8. dateadd 3일 뒤 시각:", timeformat("%Y-%m-%d %H:%M:%S", t_plus_3d))
+
+// --- 9. datediff(시작, 끝, 단위) : 두 시각의 차이 ---
+val diff_days = datediff(t1, t_plus_3d, "days")
+print("9. datediff 두 시각 차이(일수):", diff_days, "일")
+
+// --- 10. isleap(연도) : 윤년인가? ---
+print("10. 윤년 검사 (isleap): 2026년 = ", isleap(2026), "| 2028년 = ", isleap(2028))
+
+// --- 11. timed(함수, 인자...) : 함수를 부르고 [결과, 걸린 시간] 으로 돌려줍니다 ---
+func slow_task(x):
+    sleep(0.05)
+    return x * 2
+
+val bench = timed(slow_task, 21)
+print("11. timed() 측정 결과: 함수 반환값 =", bench[0], "| 소요시간 =", bench[1], "초")
+
+// --- 12. uptime() / runtime() : 프로그램이 시작된 뒤 흐른 시간 (두 이름은 같은 함수) ---
+print("12. 프로그램 총 구동 시간 (uptime/runtime):", uptime(), "초")
+
+print("\n모든 Lumi 시간 내장 함수 예제 실행 완료!")

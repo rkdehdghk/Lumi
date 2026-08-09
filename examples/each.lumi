@@ -1,0 +1,55 @@
+// Each (값마다 함수 부르기) in Lumi
+//
+//   each(함수, 시퀀스)
+//
+// 시퀀스의 값마다 함수를 한 번씩 부르고, 그 결과를 리스트로 모읍니다.
+// 파이썬의 map 과 같은 일을 합니다.
+// 집수(모디파이어)는 앞, 손댈 시퀀스는 맨 뒤 - Lumi 의 늘 하던 차례입니다.
+
+print("=== 기본 ===")
+val 두배 = func x: x * 2
+print(each(두배, [1, 2, 3]))            // [2, 4, 6]
+
+func 제곱(x):                           // 이름 있는 함수도 그대로 넘깁니다
+    return x * x
+
+print(each(제곱, [1, 2, 3, 4]))         // [1, 4, 9, 16]
+print(each(func x: x + 1, [1, 2, 3]))   // [2, 3, 4]  (그 자리에서 만들어 넘기기)
+
+print("")
+print("=== 어떤 시퀀스든 됩니다 ===")
+print(each(두배, (1, 2, 3)))            // [2, 4, 6]      튜플도
+print(each(func c: upper(c), "abc"))    // ["A", "B", "C"] 글자는 한 글자씩
+print(each(두배, encode("hi")))         // [208, 210]     바이트는 0~255 숫자
+
+print("")
+print("=== 돌아오는 것은 늘 리스트입니다 ===")
+// sort 나 shuffle 은 받은 모양을 그대로 돌려주지만,
+// each 는 함수가 무엇을 돌려줄지 모르니 언제나 리스트입니다.
+print(each(func c: c, "abc"))           // ["a", "b", "c"] ("abc" 가 아닙니다)
+print(join("", each(func c: upper(c), "abc")))   // ABC  (글자로 되돌리려면 join)
+print(len(each(두배, [1, 2, 3])) == len([1, 2, 3]))   // true  길이는 늘 같습니다
+
+print("")
+print("=== 같이 쓰기 ===")
+val 점수 = [80, 95, 62]
+print(sort(false, each(func x: x + 5, 점수)))    // [100, 85, 67]
+
+val 이름 = ["김", "박", "이"]
+print(each(func s: s + "님", 이름))              // ["김님", "박님", "이님"]
+
+// 골라내기(파이썬의 filter)는 아직 없습니다. for 문으로 씁니다.
+val 짝수 = []
+for v in [1, 2, 3, 4, 5, 6]:
+    if v % 2 == 0:
+        push(짝수, v)
+print(짝수)                                      // [2, 4, 6]
+
+print("")
+print("=== 알아 둘 점 ===")
+// - 함수는 '값' 이어야 합니다. upper 같은 내장 함수는 이름만으로 넘길 수 없으니
+//   each(func s: upper(s), xs) 처럼 한 줄 함수로 감싸 주세요.
+// - 함수는 인자를 하나만 받습니다 (값 하나 -> 결과 하나).
+// - 딕셔너리는 반쪽이 둘이라 안 됩니다. each(f, keys(d)) 나 each(f, values(d)).
+val d = {"a": 1, "b": 2}
+print(each(두배, values(d)))                     // [2, 4]

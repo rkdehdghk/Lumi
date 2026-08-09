@@ -1,0 +1,94 @@
+// 골라 쓰는 자료형 - 적고 싶은 곳에만 적습니다
+//
+//   func 이름(자료형 인자, ...) 돌려주는자료형:
+//
+// 안 적으면 지금까지와 똑같습니다. 적으면 부를 때와 돌려줄 때 검사받습니다.
+// 검사 규칙은 'int x = 5' 선언과 똑같습니다 - 같은 코드를 씁니다.
+
+print("=== 1. 안 적어도 됩니다 ===")
+
+func 두배(x):
+    return x * 2
+
+print(두배(21))
+print(두배("가"))          // 글자도 됩니다 - 아무 것도 안 적었으니까요
+
+print("")
+print("=== 2. 적으면 지켜집니다 ===")
+
+func 나이말하기(str 이름, int 살) str:
+    return 이름 + "은(는) " + str(살) + "살"
+
+print(나이말하기("루미", 3))
+
+// (숫자를 변수에 담아 넘깁니다 - 그 자리에 그대로 3 이라고 적으면
+//  lumi lint 가 돌리기 전에 잡아 주고, 이 파일은 lint 가 깨끗해야 합니다)
+val 숫자 = 3
+try:
+    print(나이말하기(숫자, 3))
+catch e:
+    print("막혔습니다: " + e.message)
+
+print("")
+print("=== 3. 돌려주는 값도 봅니다 ===")
+
+func 절반(num n) int:
+    return n / 2
+
+print(절반(10))            // 5.0 이 int 로 다듬어져 5
+
+func 거짓말() str:
+    return 숫자                // 글자를 돌려준다고 적어 놓고 숫자를 돌려줍니다
+
+try:
+    print(거짓말())
+catch e:
+    print("막혔습니다: " + e.message)
+
+print("")
+print("=== 4. 쓸 수 있는 이름 ===")
+
+// 값을 다듬어 주는 것:  int  float  num  char  str  text  seq  bytes
+// 보기만 하는 것:       bool list  tuple dict
+// 넷은 선언에도 함께 쓸 수 있습니다.
+
+func 첫칸(list 목록) num:
+    return 목록[0]
+
+func 몇개(dict 표) int:
+    return len(keys(표))
+
+bool 켜짐 = true
+tuple 좌표 = (3, 4)
+
+print(첫칸([10, 20, 30]))
+print(몇개({"가": 1, "나": 2}))
+print(켜짐)
+print(좌표)
+
+print("")
+print("=== 5. 클래스 메서드에도 ===")
+
+class 저금통:
+    func init(int 처음):
+        this.돈 = 처음
+    func 넣기(int 얼마) int:
+        this.돈 = this.돈 + 얼마
+        return this.돈
+
+val 통 = 저금통(1000)
+print(통.넣기(500))
+
+try:
+    print(통.넣기([1000]))
+catch e:
+    print("막혔습니다: " + e.message)
+
+// 주의: int 는 **글자를 코드로 바꿉니다** ('int x = "A"' 가 65 인 것과 같습니다).
+// 그래서 통.넣기("천원") 은 막히지 않고 첫 글자의 코드가 들어갑니다.
+
+print("")
+print("=== 6. 돌리기 전에 - lumi lint ===")
+print("글자로 그 자리에 적어 둔 값이 어긋나면 lumi lint 가 돌리기 전에 알려 줍니다.")
+print("  func 나이말하기(str 이름, int 살) str:  를")
+print("  나이말하기(3, 3)  으로 부르면 lint 가 그 줄을 짚어 줍니다.")

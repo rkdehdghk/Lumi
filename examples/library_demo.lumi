@@ -1,0 +1,22 @@
+// bring 으로 라이브러리 가져다 쓰기
+
+// 'bring math' 는 라이브러리를 통째로 가져오되, math.함수() 로만 부릅니다 (네임스페이스)
+bring math
+print("sqrt(16) =", math.sqrt(16))
+print("max(3, 9) =", math.max(3, 9))
+print("abs(-5)  =", math.abs(-5))
+
+// 'bring ... up 이름' 은 고른 것만 가져와 이름만으로 바로 부릅니다
+bring math up pow, min
+print("pow(2, 10) =", pow(2, 10))
+print("min(4, 7)  =", min(4, 7))
+// 참고: pow 는 내장 함수에도 같은 이름이 있고, 이름만으로 부르면 '내장 함수가 먼저'입니다.
+//       math 것을 꼭 쓰고 싶으면 math.pow(2, 10) 처럼 라이브러리 이름을 붙이세요.
+
+// 이 파일과 '같은 폴더'에 있는 .lumi 파일도 그대로 가져올 수 있습니다.
+// 예를 들어 옆에 greet.lumi 가 있다면:
+//     bring greet
+//     greet.hello("Lumi")      // 네임스페이스로
+//   또는
+//     bring greet up hello
+//     hello("Lumi")            // 이름만으로

@@ -1,0 +1,11 @@
+x = 32
+word = Lumi!
+nums = [110, 20, 60]
+score = {"alex": 15}
+flags = 36
+countdown:
+   5
+   4
+   3
+   2
+   1

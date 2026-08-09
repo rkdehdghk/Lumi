@@ -1,0 +1,99 @@
+// 3단계에서 들어온 것들 — 경로 · 지문 · 무늬 찾기 · 셸
+//   lumi test tests\lang
+
+test "지문은 표준 값과 같다":
+    // RFC / 표준 시험값
+    assertsame("e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855", sha256(""))
+    assertsame("ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad", sha256("abc"))
+    assertsame("d41d8cd98f00b204e9800998ecf8427e", md5(""))
+    assertsame("900150983cd24fb0d6963f7d28e17f72", md5("abc"))
+
+test "base64 는 표준 값과 같다":
+    assertsame("", base64(""))
+    assertsame("Zg==", base64("f"))
+    assertsame("Zm8=", base64("fo"))
+    assertsame("Zm9v", base64("foo"))
+    assertsame("Zm9vYmFy", base64("foobar"))
+    assertsame("안녕 Lumi", decode(unbase64(base64("안녕 Lumi"))))
+    assertsame(sha256("abc"), sha256(encode("abc")))
+
+test "경로 다루기":
+    assertsame("개.png", filename("자료/사진/개.png"))
+    assertsame("자료/사진", foldername("자료/사진/개.png"))
+    assertsame("", foldername("개.png"))
+    assertsame("개.png", filename("개.png"))
+    // 구분자는 운영체제 것을 씁니다
+    val 이은것 = pathjoin("a", "b")
+    assertsame(3, len(이은것))
+    assertsame("a", 이은것[0])
+    assertsame("b", 이은것[2])
+    assertsame(pathjoin("a", "b", "c"), pathjoin(["a", "b", "c"]))
+
+test "폴더 훑기":
+    newdir("_시험폴더")
+    newdir("_시험폴더/안")
+    write("x", "_시험폴더/1.txt")
+    write("y", "_시험폴더/2.txt")
+    assertsame(["1.txt", "2.txt"], listdir(file, "_시험폴더"))
+    assertsame(["안"], listdir(dir, "_시험폴더"))
+    assertsame(3, len(listdir("_시험폴더")))
+    delfile("_시험폴더/1.txt")
+    delfile("_시험폴더/2.txt")
+    deldir("_시험폴더")
+    assert(not isdir("_시험폴더"))
+
+test "무늬 검사 is / has":
+    assert(ismatch("\\d+", "12345"))
+    assert(not ismatch("\\d+", "12a45"))
+    assert(hasmatch("\\d+", "abc12"))
+    assert(not hasmatch("\\d+", "abcde"))
+    assert(ismatch("^abc$", "abc"))
+    assert(not hasmatch("^b", "abc"))
+
+test "무늬 꺼내기":
+    assertsame("1234", findmatch("\\d+", "주문 1234 번"))
+    assertsame(none, findmatch("\\d+", "숫자 없음"))
+    assertsame(["1", "22", "333"], findmatches("\\d+", "a1 bb22 ccc333"))
+    assertsame([], findmatches("\\d+", "없음"))
+    assertsame(["010", "1234"], findgroups("(\\d+)-(\\d+)", "전화 010-1234"))
+    assertsame(none, findgroups("(\\d+)-(\\d+)", "없음"))
+
+test "무늬 바꾸기와 자르기":
+    assertsame("aN bbN cN", replacematch("\\d+", "N", "a1 bb22 c3"))
+    assertsame("mail/kim", replacematch("(\\w+)@(\\w+)", "\\2/\\1", "kim@mail"))
+    assertsame(["가", "나", "다"], splitmatch(",\\s*", "가, 나,다"))
+    // 파이썬과 같은 빈 무늬 처리
+    assertsame(["", "a", "", ""], findmatches("a*", "bab"))
+    assertsame("-a-b-c-", replacematch("x*", "-", "abc"))
+
+test "무늬 기능들":
+    assertsame(["cat", "dog"], findmatches("cat|dog", "a cat and a dog"))
+    assert(ismatch("(ab)+", "ababab"))
+    assertsame("<a>", findmatch("<.+?>", "<a><b>"))       // 게으르게
+    assertsame("<a><b>", findmatch("<.+>", "<a><b>"))     // 욕심껏
+    assertsame(["aa", "aaa", "aaa"], findmatches("a{2,3}", "a aa aaa aaaa"))
+    assertsame(["가", "나"], findmatches("[^ ]+", "가 나"))
+    assertsame(["가나다", "라마"], findmatches("[가-힣]+", "abc가나다123라마"))
+    assertsame(".", findmatch("\\.", "a.b"))
+    assert(ismatch("[\\w.]+@[\\w.]+\\.\\w+", "a.b@mail.co.kr"))
+    // (?: 는 담지 않는 묶기
+    assertsame(["9"], findgroups("(?:ab)(\\d)", "ab9"))
+
+test "잘못된 무늬는 알려 준다":
+    try:
+        findmatch("(abc", "x")
+        assert(false, "오류가 났어야 합니다")
+    catch ValueError e:
+        assert(hasmatch("never closed", e.message))
+
+test "너무 복잡한 무늬는 조용히 틀리지 않는다":
+    try:
+        hasmatch("(a+)+b", "a" * 40)
+        assert(false, "그만두었다고 알려 줬어야 합니다")
+    catch ValueError e:
+        assert(hasmatch("gave up", e.message))
+
+test "셸 부르기":
+    assertsame(0, shellcode("echo x"))
+    assert(shellcode("exit 7") != 0)
+    assert(hasmatch("lumi", shell("echo lumi")))

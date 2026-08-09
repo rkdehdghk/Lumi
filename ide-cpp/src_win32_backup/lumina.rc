@@ -1,0 +1,2 @@
+/* Window and taskbar icon.  Resource 1 is what wWinMain loads. */
+1 ICON "..\\..\\Lumi&na logo\\lumina_icon_TB_icon.ico"

@@ -1,0 +1,62 @@
+// demo_traversal.lumi -- BFS/DFS 그래프 순회 데모
+// 사용법:  c-interpreter\bin\lumi.exe examples\graph\demo_traversal.lumi
+//
+// 지하철역 네트워크를 그래프로 모델링해서
+// BFS(최소 환승), DFS(전체 탐색), BFS 경로 추적 을 보여줍니다.
+
+bring graph up Graph, bfs, dfs, bfsPath
+
+print("==============================")
+print("  그래프 순회 데모 (지하철망)")
+print("==============================")
+print()
+
+// 서울 지하철 일부 구간 (가중치 1 = 한 정거장)
+val metro = Graph()
+metro.link("강남", "역삼")
+metro.link("역삼", "선릉")
+metro.link("선릉", "삼성")
+metro.link("강남", "선릉")       // 환승/지름길
+metro.link("삼성", "종합운동장")
+metro.link("종합운동장", "잠실")
+metro.link("잠실", "잠실나루")
+metro.link("잠실나루", "건대입구")
+metro.link("건대입구", "성수")
+
+print("[노선도]")
+metro.show()
+print()
+
+// ---- BFS: 강남에서부터 최소 정거장 순서 ----
+val bfsOrder = bfs(metro, "강남")
+print("[BFS 방문순서] 강남에서 시작:")
+print("  ", bfsOrder)
+print()
+
+// ---- DFS ----
+val dfsOrder = dfs(metro, "강남")
+print("[DFS 방문순서] 강남에서 시작:")
+print("  ", dfsOrder)
+print()
+
+// ---- 최소 정거장 경로 ----
+func describeRoute(graph, frm, to):
+    val path = bfsPath(graph, frm, to)
+    if len(path) == 0:
+        print("  " + frm + " -> " + to + " : 경로 없음")
+        return
+    val stops = len(path) - 1
+    val line = ""
+    val i = 0
+    while i < len(path):
+        if i > 0:
+            line = line + " - "
+        line = line + path[i]
+        i = i + 1
+    print("  " + frm + " -> " + to + "  (" + stops + "정거장):")
+    print("    " + line)
+
+print("[최소 정거장 경로]")
+describeRoute(metro, "강남", "잠실")
+describeRoute(metro, "성수", "역삼")
+describeRoute(metro, "삼성", "건대입구")

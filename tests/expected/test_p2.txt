@@ -1,0 +1,26 @@
+=== 1. String Interpolation (f-string) Test ===
+Hello Alex, age is 25, next year 26.
+Score: 98.5, doubled: 197.
+
+=== 2. Untouched Format Function Test ===
+Name: Alex, Age: 25
+
+=== 3. List & Dict Comprehension Test ===
+Evens doubled: [4, 8, 12, 16, 20]
+Dict comp: {2: 20, 3: 30, 4: 40}
+
+=== 4. Destructuring Assignment Test ===
+Destructured x: 100, y: 200
+Destructured tuple: p=1, q=two, r=true
+
+=== 5. Magic Methods & Custom Iterator Test ===
+len(r1) = 4
+r1 == r2? true
+r1 == r3? false
+Custom iteration over CustomRange:
+ - item: 0
+ - item: 5
+ - item: 10
+ - item: 15
+
+=== Priority 2 Verification Completed Successfully! ===

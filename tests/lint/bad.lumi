@@ -1,0 +1,43 @@
+// lint 가 잡아야 하는 것들만 모아 둔 파일입니다.  실행하려고 만든 것이 아닙니다.
+// tests\run.bat 이 여기에 lint 를 걸어 expected\_lint.txt 와 견줍니다.
+//
+// 일곱 규칙이 하나씩 들어 있습니다 — 하나라도 안 잡히면 시험이 깨집니다.
+
+bring math                       // L6: 가져와 놓고 안 씀
+bring json
+
+// L1: 내장을 가리는 이름 (게다가 아래에서 맨이름으로 부릅니다)
+func sort(x):
+    return x
+
+// L4: 매개변수가 겹침
+func twice(a, b, a):
+    return a
+
+// L3: return 뒤라 절대 닿지 않는 줄
+func after(x):
+    return x
+    print("never")
+
+// L5: 같은 키를 두 번
+val table = {"a": 1, "b": 2, "a": 3}
+
+// L2: catch 종류 이름 오타 — 이 절은 영원히 안 잡힙니다
+try:
+    error("MyOwnKind", "fine")
+catch MyOwnKind e:
+    print("caught")
+catch FileNotFund e:
+    print("typo")
+catch ValueError e:
+    print("fine")
+
+// L7: 적어 둔 자료형과 어긋나는 값 (부르는 자리, 돌려주는 자리, 선언한 자리)
+func 나이(int 살) str:
+    print(살)
+    return 0
+
+int 칸 = true
+
+print(sort([3, 1, 2]), twice(1, 2, 3), after(1), table, json.stringify(table))
+print(나이("여러 글자"), 나이(true), 칸)

@@ -1,0 +1,41 @@
+// keep (줄 안 바꾸기) in Lumi
+//
+//   print(값..., keep([끝말]))
+//
+// print 는 원래 끝에 줄바꿈을 붙이지만, 맨 끝 자리에 keep 을 넣으면
+// 줄바꿈 대신 '끝말' 을 붙입니다. keep 은 print 안에서만, 그것도
+// 마지막 인자로만 쓸 수 있습니다.
+
+print("=== 그냥 print ===")
+print("한 줄")
+print("또 한 줄")
+
+print("=== keep(\"\") : 줄을 안 바꿈 ===")
+print("a", keep(""))
+print("b", keep(""))
+print("c")                        // abc
+
+print("=== 끝말 정하기 ===")
+print("x", "y", keep(" -> "))
+print("z")                        // x y -> z
+
+print(1, keep(", "))
+print(2, keep(", "))
+print(3)                          // 1, 2, 3
+
+print("=== 반복문에서 한 줄로 찍기 ===")
+for i in forr(val k = 1, k <= 5, k = k + 1):
+    print(i, keep(" "))
+print("")                         // 1 2 3 4 5
+
+print("=== 끝말은 생략할 수 있어요 ===")
+print("생략하면 \"\" 와 같습니다: ", keep())
+print("이어짐")
+
+print("=== 끝말도 문자열로 바뀝니다 ===")
+print("코드", keep(200))
+print("")                         // 코드200
+
+// keep 을 다른 곳에 쓰면 오류입니다:
+//   val x = keep("a")        // 오류
+//   print(keep("a"), "b")    // 오류 (마지막 자리가 아님)

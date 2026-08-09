@@ -1,0 +1,14 @@
+=== 1. Lumi 객체를 JSON 문자열로 변환 (json.stringify) ===
+직렬화 결과:
+{"id": 1001, "name": "루미", "roles": ["developer", "admin"], "is_active": true, "extra": null}
+
+=== 2. JSON 문자열을 Lumi 데이터로 파싱 (json.parse) ===
+파싱 결과 딕셔너리: {"status": 200, "message": "성공", "data": [{"id": 1, "title": "첫 글"}]}
+상태 코드: 200
+메시지    : 성공
+첫 번째 데이터 제목: 첫 글
+
+=== 3. 별칭 사용 (json_parse / json_stringify) ===
+상품명: 노트북
+가격  : 1200000
+다시 문자열로: {"item": "노트북", "price": 1200000}

@@ -1,0 +1,41 @@
+Content-Length: 250
+
+{"seq": 1, "type": "response", "request_seq": 1, "success": true, "command": "initialize", "body": {"supportsConfigurationDoneRequest": true, "supportsEvaluateForHovers": true, "supportsTerminateRequest": true, "supportsStepInTargetsRequest": false}}Content-Length: 51
+
+{"seq": 2, "type": "event", "event": "initialized"}Content-Length: 152
+
+{"seq": 3, "type": "response", "request_seq": 2, "success": true, "command": "setBreakpoints", "body": {"breakpoints": [{"verified": true, "line": 5}]}}Content-Length: 97
+
+{"seq": 4, "type": "response", "request_seq": 3, "success": true, "command": "configurationDone"}Content-Length: 86
+
+{"seq": 5, "type": "response", "request_seq": 4, "success": true, "command": "launch"}Content-Length: 123
+
+{"seq": 6, "type": "event", "event": "stopped", "body": {"reason": "breakpoint", "threadId": 1, "allThreadsStopped": true}}Content-Length: 137
+
+{"seq": 7, "type": "response", "request_seq": 5, "success": true, "command": "threads", "body": {"threads": [{"id": 1, "name": "lumi"}]}}Content-Length: 242
+
+{"seq": 8, "type": "response", "request_seq": 6, "success": true, "command": "stackTrace", "body": {"stackFrames": [{"id": 0, "name": "<main>", "source": {"name": "prog.lumi", "path": "prog.lumi"}, "line": 5, "column": 1}], "totalFrames": 1}}Content-Length: 239
+
+{"seq": 9, "type": "response", "request_seq": 7, "success": true, "command": "scopes", "body": {"scopes": [{"name": "Locals", "variablesReference": 1, "expensive": false}, {"name": "Globals", "variablesReference": 2, "expensive": false}]}}Content-Length: 370
+
+{"seq": 10, "type": "response", "request_seq": 8, "success": true, "command": "variables", "body": {"variables": [{"name": "json", "value": "<library json>", "type": "library", "variablesReference": 0}, {"name": "수", "value": "1", "type": "int", "variablesReference": 0}, {"name": "두배", "value": "<function 두배>", "type": "function", "variablesReference": 0}]}}Content-Length: 156
+
+{"seq": 11, "type": "response", "request_seq": 9, "success": true, "command": "evaluate", "body": {"result": "101", "type": "int", "variablesReference": 0}}Content-Length: 88
+
+{"seq": 12, "type": "response", "request_seq": 10, "success": true, "command": "stepIn"}Content-Length: 118
+
+{"seq": 13, "type": "event", "event": "stopped", "body": {"reason": "step", "threadId": 1, "allThreadsStopped": true}}Content-Length: 351
+
+{"seq": 14, "type": "response", "request_seq": 11, "success": true, "command": "stackTrace", "body": {"stackFrames": [{"id": 1, "name": "두배", "source": {"name": "prog.lumi", "path": "prog.lumi"}, "line": 4, "column": 1}, {"id": 0, "name": "<main>", "source": {"name": "prog.lumi", "path": "prog.lumi"}, "line": 5, "column": 1}], "totalFrames": 2}}Content-Length: 241
+
+{"seq": 15, "type": "response", "request_seq": 12, "success": true, "command": "scopes", "body": {"scopes": [{"name": "Locals", "variablesReference": 1, "expensive": false}, {"name": "Globals", "variablesReference": 2, "expensive": false}]}}Content-Length: 185
+
+{"seq": 16, "type": "response", "request_seq": 13, "success": true, "command": "variables", "body": {"variables": [{"name": "x", "value": "5", "type": "int", "variablesReference": 0}]}}Content-Length: 129
+
+{"seq": 17, "type": "response", "request_seq": 14, "success": true, "command": "continue", "body": {"allThreadsContinued": true}}Content-Length: 97
+
+{"seq": 18, "type": "event", "event": "output", "body": {"category": "stdout", "output": "10\n"}}Content-Length: 47
+
+{"seq": 19, "type": "event", "event": "exited"}Content-Length: 51
+
+{"seq": 20, "type": "event", "event": "terminated"}

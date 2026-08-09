@@ -1,0 +1,11 @@
+perfect
+good
+keep going
+red
+go
+mode 1 active
+mode 2 logic executed
+mon -> weekday
+sat -> weekend
+sun -> weekend
+tue -> weekday

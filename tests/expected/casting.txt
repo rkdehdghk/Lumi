@@ -1,0 +1,49 @@
+=== numbers ===
+42
+3
+-3
+1
+7
+3.5
+42
+3.5
+float
+=== characters ===
+A
+h
+65
+B
+=== text ===
+3.14
+true
+[1, 2]
+12
+점수: 5점
+=== true / false ===
+false
+true
+false
+true
+false
+true
+리스트에 값이 있어요
+=== lists and tuples ===
+["a", "b", "c"]
+[1, 2, 3]
+(1, 2, 3)
+(99, 2)
+=== dictionaries ===
+["a", "b"]
+{"x": 1, "y": 2}
+{"a": 1, "b": 2} {"a": 100, "b": 2}
+=== seq: the sequence family ===
+abc
+[1, 2]
+["a", "b"]
+=== bytes: text turned into numbers ===
+bytes[48 49]
+[104, 105]
+bytes[68 69]
+hi
+=== input is always text ===
+=== a value that cannot be converted is an error ===

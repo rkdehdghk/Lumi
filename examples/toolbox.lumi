@@ -1,0 +1,104 @@
+// 실무 도구함 — 폴더 훑기 · 경로 · 지문 · 무늬 찾기 · 다른 프로그램 부르기
+//
+// 이 예제는 "파일을 훑어 보고, 이름을 다듬고, 내용에서 뭔가 뽑아내는"
+// 자동화 스크립트가 어떻게 생겼는지 보여 줍니다.
+
+print("=== 1. 폴더 훑기 (listdir) ===")
+// 준비: 잠깐 쓸 폴더를 만듭니다
+newdir("도구함시험")
+newdir("도구함시험/하위")
+write("2026-08-09 ERROR 디스크 부족\n2026-08-09 INFO 정상\n", "도구함시험/log.txt")
+write("이름,나이\n김,20\n", "도구함시험/표.csv")
+
+print("전부   :", listdir("도구함시험"))
+print("파일만 :", listdir(file, "도구함시험"))   // file / dir 은 따옴표 없이
+print("폴더만 :", listdir(dir, "도구함시험"))
+print("")
+
+
+print("=== 2. 경로 다루기 ===")
+val 경로 = pathjoin("도구함시험", "log.txt")
+// pathjoin 은 '이 운영체제의' 구분자를 씁니다 - 윈도우는 \, 리눅스·맥은 /.
+// 그래서 화면에 찍을 때는 / 로 맞춰 보여 주면 어디서나 같아 보입니다.
+func 보기좋게(p):
+    return replace("\\", "/", p)
+
+print("pathjoin   :", 보기좋게(경로))
+print("filename   :", filename(경로))
+print("foldername :", foldername(경로))
+print("여러 조각  :", 보기좋게(pathjoin("a", "b", "c.txt")))
+print("리스트로도 :", 보기좋게(pathjoin(["a", "b", "c.txt"])))
+print("")
+
+
+print("=== 3. 무늬 찾기 (정규표현식) ===")
+// 무늬가 앞, 글자가 뒤 — replace 와 같은 차례입니다.
+print("있는가        :", hasmatch("ERROR", read(경로)))
+print("전체가 맞는가 :", ismatch("\\d+", "12345"), ismatch("\\d+", "12a"))
+print("처음 하나     :", findmatch("\\d{4}-\\d{2}-\\d{2}", read(경로)))
+print("전부          :", findmatches("[A-Z]{4,}", read(경로)))
+print("묶음 꺼내기   :", findgroups("(\\d+)-(\\d+)-(\\d+)", "오늘은 2026-08-09"))
+print("바꾸기        :", replacematch("\\d", "#", "a1b22c"))
+print("묶음 되쓰기   :", replacematch("(\\w+)@(\\w+)", "\\2/\\1", "kim@mail"))
+print("무늬로 자르기 :", splitmatch(",\\s*", "가, 나,다,  라"))
+print("")
+
+print("--- ERROR 줄만 골라 읽기 ---")
+for 줄 in split("\n", read(경로)):
+    if hasmatch("ERROR", 줄):
+        val 몫 = findgroups("^(\\S+) ERROR (.+)$", 줄)
+        print("  ", 몫[0], "->", 몫[1])
+print("")
+
+
+print("=== 4. 지문과 옮겨 적기 ===")
+print("sha256 (앞 16):", sha256("hello")[0:16] + "...")
+print("md5           :", md5("hello"))
+print("base64        :", base64("Lumi 안녕"))
+print("되돌리기      :", decode(unbase64(base64("Lumi 안녕"))))
+print("파일 지문     :", len(sha256(read(경로))) == 64)
+print("")
+
+print("--- 파일이 바뀌었는지 보기 ---")
+val 전 = sha256(read(경로))
+append("한 줄 더\n", 경로)
+val 후 = sha256(read(경로))
+print("바뀌었나:", 전 != 후)
+print("")
+
+
+print("=== 5. 다른 프로그램 부르기 ===")
+// shell 은 찍힌 글자를, shellcode 는 종료 코드를 돌려줍니다.
+// (이름을 run 이 아니라 shell 로 둔 까닭: run 은 사람들이 자기 함수 이름으로 흔히 씁니다)
+val 나온것 = shell("echo Lumi에서 부름")
+print("shell     :", split("\n", 나온것)[0])
+print("성공 코드 :", shellcode("echo x") == 0)
+print("실패 코드 :", shellcode("exit 7") != 0)
+print("")
+
+
+print("=== 6. 다 모아서: 폴더 안 .txt 훑어 요약하기 ===")
+func 요약(폴더):
+    val 결과 = []
+    for 이름 in listdir(file, 폴더):
+        if not hasmatch("\\.txt$", 이름):
+            continue
+        val 길 = pathjoin(폴더, 이름)
+        val 속 = read(길)
+        push(결과, {
+            "이름": 이름,
+            "줄수": len(split("\n", 속)) - 1,
+            "오류수": len(findmatches("ERROR", 속)),
+            "지문": sha256(속)[0:8]
+        })
+    return 결과
+
+for 하나 in 요약("도구함시험"):
+    print("  ", 하나["이름"], "줄", 하나["줄수"], "/ 오류", 하나["오류수"], "/", 하나["지문"])
+
+// 정리
+delfile("도구함시험/log.txt")
+delfile("도구함시험/표.csv")
+deldir("도구함시험")
+print("")
+print("정리 끝:", isdir("도구함시험") == false)

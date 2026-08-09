@@ -1,0 +1,42 @@
+=== 진법 리터럴 (writing a number in another base) ===
+11
+255
+11
+true
+true
+=== bin() / hex() : 수를 그 진법 표기로 ===
+0b1011
+0xff
+0b11111111
+0xfff
+-0b1010
+str
+=== num() : 어떤 진법 표기든 다시 10진수로 ===
+11
+255
+42
+-16
+11
+255
+=== 왕복하기 (round trip) ===
+200 0b11001000 0xc8
+true
+true
+=== 계산은 언제나 10진수로 (arithmetic is base-free) ===
+15
+510
+8
+0b1000
+0b10000
+=== 표 만들기 (a small conversion table) ===
+10진수	2진수	16진수
+0 	 0b0 	 0x0
+4 	 0b100 	 0x4
+8 	 0b1000 	 0x8
+12 	 0b1100 	 0xc
+16 	 0b10000 	 0x10
+=== 색깔 코드처럼 쓰기 (a practical use) ===
+R 255 0xff
+G 128 0x80
+B 0 0x0
+=== 잘못 쓰면 오류 (errors) ===

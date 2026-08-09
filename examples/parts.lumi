@@ -1,0 +1,90 @@
+// Split, join, replace (나누기·합치기·바꾸기) in Lumi
+//
+// 다른 문자열 함수들처럼 '무엇으로' 를 앞에, 대상을 마지막에 적습니다.
+//   split  ([구분자,] 문자열)        ->  잘라서 리스트로  (생략하면 공백 기준)
+//   join   ([이을 것,] 시퀀스)       ->  이어서 문자열로  (생략하면 그냥 붙임)
+//   replace(바꿀 것, 새 것, 문자열)  ->  찾은 것을 모두 바꾼 문자열
+//
+// split 과 join 은 서로 반대되는 짝입니다.
+
+print("=== 나누기 (split) ===")
+print(split(",", "사과,바나나,포도"))    // ["사과", "바나나", "포도"]
+print(split(", ", "1, 2, 3"))           // ["1", "2", "3"]   여러 글자도 구분자
+print(split(",", "a,,b"))               // ["a", "", "b"]    사이가 비면 빈 문자열
+print(split(",", "abc"))                // ["abc"]           없으면 통째로 하나
+
+print("")
+print("=== 구분자를 안 적으면 공백 기준 ===")
+print(split("hello lumi world"))        // ["hello", "lumi", "world"]
+print(split("   앞뒤   공백   "))        // ["앞뒤", "공백"]   여러 칸도 한 번으로
+
+print("")
+print("=== 합치기 (join) ===")
+print(join("-", ["a", "b", "c"]))       // a-b-c
+print(join(["a", "b", "c"]))            // abc           안 적으면 그냥 붙임
+print(join(", ", [1, 2, 3]))            // 1, 2, 3       숫자도 알아서 글자로
+print(join("-", ("x", "y")))            // x-y           튜플도 됩니다
+print(join(" > ", "abc"))               // a > b > c     문자열도 시퀀스니까
+
+print("")
+print("=== 둘은 서로 반대예요 ===")
+val 줄 = "김,이,박"
+print(split(",", 줄))                   // ["김", "이", "박"]
+print(join(",", split(",", 줄)))        // 김,이,박      되돌아옴
+print(join(",", split(",", 줄)) == 줄)  // true
+
+print("")
+print("=== 조각 개수는 구분자 개수보다 하나 많아요 ===")
+print(incount(",", 줄), len(split(",", 줄)))   // 2 3
+
+print("")
+print("=== 나눠서 하나씩 쓰기 ===")
+val 이름들 = split(",", 줄)
+print(len(이름들), "명")
+for 이름 in 이름들:
+    print("-", 이름)
+
+print("")
+print("=== 바꾸기 (replace) ===")
+print(replace("b", "B", "abc"))         // aBc
+print(replace(" ", "-", "a b c"))       // a-b-c
+print(replace(",", ", ", "1,2,3"))      // 1, 2, 3      여러 글자로도 바꿈
+print(replace("도레", "미", "도레미도레")) // 미미미        여러 글자를 찾아서
+print(replace("z", "!", "abc"))         // abc          없으면 그대로
+
+print("")
+print("=== 새 것이 빈 문자열이면 '지우기' ===")
+print(replace(" ", "", "a b c"))        // abc
+print(replace("-", "", "010-1234-5678"))  // 01012345678
+
+print("")
+print("=== 바뀐 개수는 찾은 개수와 같아요 ===")
+val 글 = "a b c"
+print(incount(" ", 글))                 // 2
+print(replace(" ", "_", 글))            // a_b_c
+print(글)                               // a b c        원본은 그대로
+
+print("")
+print("=== 같은 일을 두 가지 방법으로 ===")
+print(replace(" ", "-", 글))            // a-b-c
+print(join("-", split(" ", 글)))        // a-b-c        같은 결과
+
+print("")
+print("=== 다른 문자열 함수와 함께 쓰기 ===")
+val 답 = " 3, 1, 2 "
+print(join("-", split(",", strip(답))))       // 3-1-2
+
+// 단어마다 첫 글자를 대문자로 바꿔서 다시 붙이기
+val 문장 = "hello lumi world"
+val 단어들 = []
+for 단어 in split(문장):
+    push(단어들, upper(0, 단어))
+print(join(" ", 단어들))                       // Hello Lumi World
+
+print("")
+print("=== 표 만들기 ===")
+// 줄 하나를 나눠서 다시 다른 모양으로 붙일 수 있습니다.
+val 자료 = "이름:루미,나이:1,언어:Lumi"
+for 칸 in split(",", 자료):
+    val 짝 = split(":", 칸)
+    print(짝[0], "->", 짝[1])

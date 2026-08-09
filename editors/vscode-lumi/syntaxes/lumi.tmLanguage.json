@@ -1,0 +1,90 @@
+{
+  "$schema": "https://raw.githubusercontent.com/martinring/tmlanguage/master/tmlanguage.json",
+  "name": "Lumi",
+  "scopeName": "source.lumi",
+  "patterns": [
+    {
+      "include": "#comment"
+    },
+    {
+      "include": "#string"
+    },
+    {
+      "include": "#number"
+    },
+    {
+      "include": "#keyword"
+    },
+    {
+      "include": "#type"
+    },
+    {
+      "include": "#builtin"
+    },
+    {
+      "include": "#funcname"
+    }
+  ],
+  "repository": {
+    "comment": {
+      "patterns": [
+        {
+          "name": "comment.line.double-slash.lumi",
+          "match": "//.*$"
+        },
+        {
+          "name": "comment.block.lumi",
+          "begin": "/\\.",
+          "end": "\\./"
+        }
+      ]
+    },
+    "string": {
+      "patterns": [
+        {
+          "name": "string.quoted.double.lumi",
+          "begin": "\"",
+          "end": "\"",
+          "patterns": [
+            {
+              "name": "constant.character.escape.lumi",
+              "match": "\\\\(u[0-9a-fA-F]{4}|U[0-9a-fA-F]{8}|x[0-9a-fA-F]{2}|.)"
+            }
+          ]
+        },
+        {
+          "name": "string.quoted.single.lumi",
+          "begin": "'",
+          "end": "'"
+        }
+      ]
+    },
+    "number": {
+      "name": "constant.numeric.lumi",
+      "match": "\\b(0[bB][01]+|0[xX][0-9a-fA-F]+|\\d+\\.\\d+|\\d+)\\b"
+    },
+    "keyword": {
+      "name": "keyword.control.lumi",
+      "match": "\\b(abstract|always|and|break|bring|case|catch|class|continue|default|elif|else|error|false|for|from|func|global|if|in|local|not|or|return|safe|super|switch|test|this|true|try|up|use|val|while)\\b"
+    },
+    "type": {
+      "name": "storage.type.lumi",
+      "match": "\\b(bool|bytes|char|dict|float|int|list|num|seq|str|text|tuple)\\b"
+    },
+    "builtin": {
+      "name": "support.function.lumi",
+      "match": "\\b(replacematch|findmatches|renamefile|timeformat|assertsame|foldername|findgroups|splitmatch|writeline|timeparse|findmatch|shellcode|httpserve|hasalpha|hasdigit|hasalgit|movefile|readline|timezone|datediff|filename|pathjoin|fullpath|unbase64|hasmatch|isalpha|isdigit|isalgit|incount|replace|shuffle|newfile|delfile|dateadd|runtime|listdir|ismatch|infind|inpair|format|encode|decode|insert|values|append|isfile|newdir|deldir|isleap|uptime|filter|getenv|assert|sha256|base64|cclose|cbytes|print|input|start|upper|lower|strip|split|insor|erase|write|isend|close|where|sleep|clock|timed|clamp|shell|cload|ccall|cfree|ctext|keep|wait|type|forr|join|sort|each|push|keys|eval|read|open|move|time|date|rand|args|chas|cbuf|cget|cput|len|isa|bin|hex|pop|has|del|now|sum|env|md5|add|sub|mul|div|mod|pow|neg)\\b"
+    },
+    "funcname": {
+      "match": "\\b(func)\\s+([^\\s(:,]+)",
+      "captures": {
+        "1": {
+          "name": "keyword.control.lumi"
+        },
+        "2": {
+          "name": "entity.name.function.lumi"
+        }
+      }
+    }
+  }
+}

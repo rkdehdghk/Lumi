@@ -1,0 +1,100 @@
+# Lumi CI
+#
+# 이 저장소가 오래 안고 있던 벽 하나를 없애려고 둡니다: **진짜 리눅스·맥에서
+# 한 번도 안 돌려 봤다.** 개발은 윈도우에서 하고, POSIX 는 MSYS2(호환 계층)로만
+# 확인해 왔습니다.
+#
+# 세 갈래를 돌립니다.
+#   interpreter  ubuntu / macos / windows 에서 빌드하고 tests 를 통째로
+#   ide          ubuntu 에서 Qt6 으로 Lumina 를 빌드 (아직 띄워 본 적 없는 쪽)
+#
+# 골든 파일은 **바이트로** 견줍니다. 줄 끝이 바뀌면 전부 깨지므로
+# .gitattributes 의 `* -text` 가 이 CI 의 전제입니다 — 그것부터 보세요.
+
+name: CI
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  interpreter:
+    name: interpreter (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false        # 한 OS 가 깨져도 나머지 결과는 봐야 합니다
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      # bring http 가 curl 을 부릅니다. 세 러너 모두 기본 탑재이지만,
+      # 없으면 tests/run.sh 가 그 항목만 건너뛰고 조용히 초록불이 됩니다 —
+      # 그래서 여기서 있는지 못박아 둡니다.
+      - name: curl 있는지 확인
+        shell: bash
+        run: curl --version | head -1
+
+      # examples/database.lumi 와 tests/lang/ffi_test.lumi 가 SQLite 를 dlopen 합니다.
+      # 없으면 둘 다 '건너뜁니다'로 지나가지만, 있으면 그 길까지 시험됩니다.
+      - name: SQLite 깔기 (ubuntu)
+        if: runner.os == 'Linux'
+        run: sudo apt-get update && sudo apt-get install -y libsqlite3-0 libsqlite3-dev
+
+      - name: 빌드 (POSIX)
+        if: runner.os != 'Windows'
+        run: |
+          cd c-interpreter
+          ./build.sh
+
+      # build.bat 은 Visual Studio 경로를 박아 두어서 러너에서는 안 맞습니다.
+      # CMake 는 러너에 있는 VS 를 알아서 찾습니다.
+      - name: 빌드 (windows)
+        if: runner.os == 'Windows'
+        shell: cmd
+        run: |
+          cmake -S c-interpreter -B c-interpreter/build -DCMAKE_BUILD_TYPE=Release
+          cmake --build c-interpreter/build --config Release
+
+      - name: 시험 (POSIX)
+        if: runner.os != 'Windows'
+        run: ./tests/run.sh
+
+      - name: 시험 (windows)
+        if: runner.os == 'Windows'
+        shell: cmd
+        run: tests\run.bat
+
+      # 깨졌을 때 무엇이 어떻게 달랐는지 보려면 실제 출력이 필요합니다.
+      - name: 깨졌을 때 실제 출력 올리기
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: actual-${{ matrix.os }}
+          path: tests/actual/
+          retention-days: 7
+
+  ide:
+    name: IDE (ubuntu, Qt6)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Qt6 깔기
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y qt6-base-dev qt6-svg-dev cmake g++ libgl1-mesa-dev
+
+      # build.sh 가 인터프리터가 없으면 그것부터 빌드합니다.
+      - name: Lumina 빌드
+        run: |
+          cd ide-cpp
+          ./build.sh
+
+      # 창을 띄우는 시험은 아직 없습니다. 지금 확인하는 것은 '리눅스에서 빌드된다'
+      # 까지입니다 — 아래 터미널(프롬프트·cd·Stop·F5)은 사람이 한 번 봐야 합니다.
+      - name: 만들어졌는지 확인
+        run: test -x ide-cpp/bin/Lumina && echo "Lumina 빌드됨"

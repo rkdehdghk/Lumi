@@ -1,0 +1,71 @@
+{
+  "name": "lumi-lang",
+  "displayName": "Lumi",
+  "description": "Lumi language support - errors as you type, completion, hover, debugging",
+  "version": "1.1.0",
+  "publisher": "lumi",
+  "engines": { "vscode": "^1.75.0" },
+  "categories": ["Programming Languages", "Debuggers"],
+  "activationEvents": ["onLanguage:lumi", "onDebugResolve:lumi"],
+  "main": "./extension.js",
+  "contributes": {
+    "languages": [
+      {
+        "id": "lumi",
+        "aliases": ["Lumi", "lumi"],
+        "extensions": [".lumi"],
+        "configuration": "./language-configuration.json"
+      }
+    ],
+    "grammars": [
+      {
+        "language": "lumi",
+        "scopeName": "source.lumi",
+        "path": "./syntaxes/lumi.tmLanguage.json"
+      }
+    ],
+    "breakpoints": [{ "language": "lumi" }],
+    "debuggers": [
+      {
+        "type": "lumi",
+        "label": "Lumi",
+        "languages": ["lumi"],
+        "configurationAttributes": {
+          "launch": {
+            "required": ["program"],
+            "properties": {
+              "program": {
+                "type": "string",
+                "description": "The .lumi file to run",
+                "default": "${file}"
+              },
+              "stopOnEntry": {
+                "type": "boolean",
+                "description": "Stop at the first line",
+                "default": false
+              }
+            }
+          }
+        },
+        "initialConfigurations": [
+          {
+            "type": "lumi",
+            "request": "launch",
+            "name": "Run this Lumi file",
+            "program": "${file}"
+          }
+        ]
+      }
+    ],
+    "configuration": {
+      "title": "Lumi",
+      "properties": {
+        "lumi.path": {
+          "type": "string",
+          "default": "lumi",
+          "description": "Path to the lumi executable. Leave as \"lumi\" if it is on PATH."
+        }
+      }
+    }
+  }
+}

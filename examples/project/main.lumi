@@ -1,0 +1,34 @@
+// 폴더로 나눈 프로그램 (Folder-structured project)
+//
+//   project/
+//     main.lumi          <- 지금 이 파일
+//     models/user.lumi
+//     services/auth.lumi
+//
+// 경로는 따옴표 안에 적습니다. 기준은 '이 bring 을 적은 파일이 있는 폴더'입니다.
+// .lumi 는 붙여도 되고 빼도 됩니다.
+
+bring "models/user"              // 파일 이름 그대로 user 에 담깁니다
+bring "services/auth"            // auth 에 담깁니다
+bring a = "services/auth"        // 이름을 골라서 담기
+bring "models/user" up 보기       // 함수 하나만 골라 오기
+
+print("=== 1. 하위 폴더의 파일 쓰기 ===")
+val 손님 = user.손님만들기("이철수")
+print("만든 것 :", 손님)
+print("역할    :", 손님["역할"])
+print("")
+
+print("=== 2. 그 파일이 또 다른 파일을 쓸 때 ===")
+// auth 는 자기 안에서 ../models/user 를 bring 합니다
+print("관리자  :", auth.로그인("김관리"))
+print("손님    :", auth.로그인("이철수"))
+print("")
+
+print("=== 3. 이름 골라 담기 (bring 이름 = \"경로\") ===")
+print("같은 것 :", a.로그인("박관리"))
+print("")
+
+print("=== 4. 함수만 골라 오기 (up) ===")
+// 골라 온 것은 앞에 이름을 붙이지 않고 바로 씁니다
+print("보기    :", 보기(손님))

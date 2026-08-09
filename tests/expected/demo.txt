@@ -1,0 +1,7 @@
+a + b = 13
+a / b = 3.3333333333333335
+a % b = 1
+a is greater than b
+sum of 1..5 = 15
+5! = 120
+Grade: B

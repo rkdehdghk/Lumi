@@ -1,0 +1,26 @@
+--- power (**) ---
+1024
+3
+0.5
+512
+--- bitwise ---
+2
+7
+5
+-6
+16
+15
+--- tuples ---
+(3, 4)
+3 4
+2
+(4,)
+(1, 2, 3, 4)
+tuple
+10
+20
+30
+--- local / global ---
+in play, score = 100
+outside, score = 1
+winner = Kim

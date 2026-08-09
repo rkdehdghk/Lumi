@@ -1,0 +1,74 @@
+// =================================================================
+// Lumina CSV 라이브러리 응용 예제: 상품 재고 및 매출 집계 시스템
+// =================================================================
+
+bring csv
+
+print("=== 1. 원본 상품 데이터 준비 ===")
+val raw_data = "상품명,카테고리,단가,수량\n노트북,전자기기,1200000,5\n마우스,전자기기,25000,12\n키보드,전자기기,85000,3\n공책,문구류,3000,50\n볼펜,문구류,1500,2\n"
+
+// 텍스트를 CSV 2차원 리스트로 파싱
+val rows = csv.parse(raw_data)
+print("파싱 완료, 총", len(rows) - 1, "개의 상품이 있습니다.")
+
+print("\n=== 2. 데이터 분석 및 새로운 항목 계산 (csv.head) ===")
+val items = csv.head(rows)
+
+val total_revenue = 0
+val reorder_items = []
+val processed_items = []
+
+for item in items:
+    val name = item["상품명"]
+    val category = item["카테고리"]
+    val price = num(item["단가"])
+    val qty = num(item["수량"])
+
+    // 매출액 계산
+    val revenue = price * qty
+    total_revenue = total_revenue + revenue
+
+    // 재고 상태 판별
+    val status = "정상"
+    if qty < 5:
+        status = "재주문필요"
+        push(reorder_items, name)
+
+    // 새 가공 데이터 딕셔너리 생성
+    val new_item = {
+        "상품명": name,
+        "카테고리": category,
+        "단가": str(price),
+        "수량": str(qty),
+        "총매출액": str(revenue),
+        "재고상태": status
+    }
+    push(processed_items, new_item)
+
+print("총 예상 매출액:", total_revenue, "원")
+print("재주문 필요 상품:", reorder_items)
+
+print("\n=== 3. 가공된 데이터 CSV 저장 (csv.unhead & csv.save) ===")
+// 새로운 헤더 정의: 기존 헤더 + 추가된 필드
+val new_headers = ["상품명", "카테고리", "단가", "수량", "총매출액", "재고상태"]
+
+// 딕셔너리 리스트를 다시 CSV 2차원 리스트로 복원
+val updated_rows = csv.unhead(new_headers, processed_items)
+
+// 파일 저장 (인코딩: "cp949")
+val filename = 'store_report.csv'
+val bytes_written = csv.save("cp949", updated_rows, filename)
+print("'" + filename + "' 파일 저장 완료! (쓴 글자 수:", bytes_written, "자)")
+
+print("\n=== 4. 저장된 CSV 파일 재로드 및 보고서 출력 (csv.load) ===")
+val saved_rows = csv.load("cp949", filename)
+val report_data = csv.head(saved_rows)
+
+print("\n[ 최종 데이터 보고서 ]")
+for row in report_data:
+    print(row["상품명"], "(분류:", row["카테고리"] + ") | 총매출:", row["총매출액"] + "원 | 상태:", row["재고상태"])
+
+// 임시 생성한 파일 삭제
+delfile(filename)
+
+print("\n응용 예제 실행 완벽 성공!")

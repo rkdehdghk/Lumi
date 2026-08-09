@@ -1,0 +1,33 @@
+func 늦게두배(x):
+    sleep(0.05)
+    return x * 2
+
+test "start 는 나중에 받을 일감을 돌려준다":
+    val a = start(늦게두배, 3)
+    val b = start(늦게두배, 4)
+    assertsame(6, wait(a))
+    assertsame(8, wait(b))
+
+test "wait 는 같은 일감을 다시 받아도 된다":
+    val a = start(늦게두배, 5)
+    assertsame(10, wait(a))
+    assertsame(10, wait(a))
+
+test "일감 안의 오류는 wait 에서 다시 난다":
+    func 실패():
+        error("ValueError", "일감에서 난 오류")
+    val a = start(실패)
+    val 잡았나 = false
+    try:
+        wait(a)
+    catch ValueError e:
+        잡았나 = e.message == "일감에서 난 오류"
+    assert(잡았나)
+
+test "start 는 함수만 받는다":
+    val 잡았나 = false
+    try:
+        start(3)
+    catch e:
+        잡았나 = true
+    assert(잡았나)

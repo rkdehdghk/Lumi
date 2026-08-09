@@ -1,0 +1,62 @@
+// Priority 2 Feature Verification Test
+
+print("=== 1. String Interpolation (f-string) Test ===")
+val name = "Alex"
+val age = 25
+val score = 98.5
+
+val msg1 = $"Hello {name}, age is {age}, next year {age + 1}."
+val msg2 = $"Score: {score}, doubled: {score * 2}."
+
+print(msg1)
+print(msg2)
+
+print("\n=== 2. Untouched Format Function Test ===")
+val fmt_msg = format(name, age, "Name: {}, Age: {}")
+print(fmt_msg)
+
+print("\n=== 3. List & Dict Comprehension Test ===")
+val evens_doubled = [x * 2 for x in [1, 2, 3, 4, 5, 6, 7, 8, 9, 10] if x % 2 == 0]
+print("Evens doubled:", evens_doubled)
+
+val dict_comp = {k: k * 10 for k in [1, 2, 3, 4] if k > 1}
+print("Dict comp:", dict_comp)
+
+print("\n=== 4. Destructuring Assignment Test ===")
+val (x, y) = [100, 200]
+print($"Destructured x: {x}, y: {y}")
+
+val (p, q, r) = (1, "two", true)
+print($"Destructured tuple: p={p}, q={q}, r={r}")
+
+print("\n=== 5. Magic Methods & Custom Iterator Test ===")
+class CustomRange:
+    val limit = 0
+    func init(limit):
+        this.limit = limit
+
+    func len():
+        return this.limit
+
+    func eq(other):
+        return this.limit == other.limit
+
+    func iter():
+        val lst = []
+        for val i = 0, i < this.limit, i = i + 1:
+            push(lst, i * 5)
+        return lst
+
+val r1 = CustomRange(4)
+val r2 = CustomRange(4)
+val r3 = CustomRange(5)
+
+print($"len(r1) = {len(r1)}")
+print($"r1 == r2? {r1 == r2}")
+print($"r1 == r3? {r1 == r3}")
+
+print("Custom iteration over CustomRange:")
+for val item in r1:
+    print(" - item:", item)
+
+print("\n=== Priority 2 Verification Completed Successfully! ===")

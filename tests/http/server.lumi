@@ -1,0 +1,19 @@
+// 서버 쪽 — tests\run.bat 이 client.lumi 와 짝지어 돌립니다.
+// (tests/lang 이 아니라 여기 있는 까닭: lumi test 가 집어가면 기다리다 멈춥니다)
+bring http
+
+func 처리(요청):
+    if 요청["길"] == "/인사":
+        val 이름 = "없음"
+        if has(요청["물음"], "이름"):
+            이름 = 요청["물음"]["이름"]
+        return {"코드": 200, "본문": "안녕 " + 이름,
+                "머리말": {"Content-Type": "text/plain; charset=utf-8"}}
+    if 요청["길"] == "/메아리":
+        return {"코드": 200, "본문": 요청["방법"] + "|" + 요청["본문"]}
+    if 요청["길"] == "/터져":
+        val xs = [1]
+        return xs[99]
+    return {"코드": 404, "본문": "없는 길"}
+
+http.serve(18077, 처리, 4)

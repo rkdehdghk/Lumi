@@ -1,0 +1,41 @@
+// 일부러 지저분하게 적은 파일입니다.  lumi fmt 가 이것을 어떻게 펴는지 굳혀 둡니다.
+// run.bat 이 messy.lumi 로 베껴서 fmt 를 돌리고 expected\_fmt_messy.txt 와 견줍니다.
+// (원본은 늘 이 messy.src 입니다 — 시험이 돌 때마다 되돌려 놓습니다.)
+
+
+
+val a=1
+val b   =   2
+print( a+b )
+print(a  -  b)
+print(-a)
+print(a - -b)
+
+val 표 = { "가":1,"나" : 2 }
+val 목록 = [ 1,2,3 ]
+print(목록[0:2])
+print(목록[ 1 ])
+
+func 더하기(x,y=2):
+        return x+y
+
+  // 들여쓰기가 제멋대로인 주석은 그 자리에 그대로 둡니다
+print(더하기(1))
+print(더하기(1,3))
+
+val 두배 = func x:x*2
+print(each(func x:x+1,[1,2,3]))
+
+if a<b:
+    print("작다")            // 줄 맞춰 둔 주석은
+else:
+    print("크다")            // 그 자리를 지킵니다
+
+for val i=0,i<3,i++:
+    print(i)
+
+val 여러줄 = {
+    "하나": 1,
+    "둘": 2
+}
+print(여러줄)

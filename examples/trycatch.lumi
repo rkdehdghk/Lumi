@@ -1,0 +1,140 @@
+// 예외 처리 (Exception Handling) in Lumi
+//
+//   try:            일단 해 보기
+//   safe:           에러 없이 끝났을 때만
+//   catch [타입] 이름:  에러가 났을 때 (여러 개 이어 붙일 수 있습니다)
+//   always:         에러가 나든 안 나든 언제나 마지막에
+//   error("메시지") / error("타입", "메시지")   내가 직접 에러 일으키기
+//
+// 원래 오류가 나면 프로그램이 그 자리에서 멈추지만,
+// try 로 감싸 두면 멈추지 않고 catch 로 넘어갑니다.
+
+print("=== 1. 기본 예외 포획 검증 ===")
+try:
+    val a = 10
+    val b = 0
+    print("계산 중...")
+    val res = a / b               // 0으로 나누기 -> 여기서 바로 catch 로 뜁니다
+    print("결과:", res)           // 그래서 이 줄은 실행되지 않습니다
+catch e:
+    print("예외 포획 성공! 메시지:", e)   // e 에는 에러 메시지가 글자로 담깁니다
+always:
+    print("always 블록 실행 완료 (항상 실행됨)\n")
+
+
+print("=== 2. 성공 시 실행(safe) 검증 ===")
+try:
+    val x = 10
+    val y = 2
+    val res2 = x / y
+safe:
+    print("safe 블록 실행: 계산에 성공했습니다! 결과:", res2)
+catch e:
+    print("이 출력은 안 나와야 합니다:", e)
+always:
+    print("always 블록 실행 완료\n")
+
+
+print("=== 3. 직접 에러 일으키기 error(...) 검증 ===")
+func check_positive(num):
+    if num <= 0:
+        error("ValueError", "양수만 입력 가능합니다")   // 타입과 메시지를 함께
+    return num
+
+try:
+    check_positive(-5)
+catch ValueError e:               // 종류를 적으면 그 종류만 잡습니다
+    print("ValueError 포획 성공! 발생한 에러:", e)
+catch e:                          // 타입 없는 catch 는 나머지 전부를 받습니다
+    print("기타 에러:", e)
+always:
+    print("always 블록 완료\n")
+
+
+print("=== 4. 잡히지 않으면 바깥으로 올라갑니다 ===")
+// 안쪽 try 가 못 잡은 에러는 바깥 try 로 올라갑니다.
+try:
+    try:
+        error("InnerError", "안쪽에서 난 에러")
+    catch ValueError e:           // 타입이 달라서 여기서는 안 잡힙니다
+        print("이 줄은 안 나옵니다")
+    always:
+        print("안쪽 always 는 그래도 실행됩니다")
+catch e:
+    print("바깥에서 잡았습니다:", e)
+
+
+print("")
+print("=== 5. 에러에서 꺼내 보기 ===")
+// catch 가 건네주는 e 는 글자가 아니라 '난 오류' 값입니다.
+//   e.type     오류 종류 이름
+//   e.message  설명 (줄 번호 없이)
+//   e.line     난 줄 번호
+//   e.file     난 파일 이름
+try:
+    val xs = [1, 2]
+    print(xs[9])
+catch e:
+    print("종류   :", e.type)        // IndexError
+    print("메시지 :", e.message)     // Index out of range
+    print("줄     :", e.line)
+    // e.file 은 '적어 준 그대로'라 실행한 방법에 따라 폴더가 붙습니다.
+    // 폴더를 떼고 싶으면 마지막 조각만 꺼냅니다.
+    print("파일   :", split("/", replace("\\", "/", e.file))[-1])
+    print("그대로 :", e)             // [line N] [IndexError] Index out of range
+    print("type() :", type(e))       // IndexError
+
+
+print("")
+print("=== 6. 종류에는 갈래가 있습니다 ===")
+// 아래로 갈수록 자세한 종류입니다. 위엣것으로 잡으면 아래것도 함께 잡힙니다.
+//   Error
+//     ├ LookupError ─ IndexError / KeyError
+//     ├ FileError   ─ FileNotFound
+//     ├ TypeError / ValueError / NameError / MathError / ArgumentError
+//     └ (내가 error("이름", ...) 로 지은 종류들)
+func 해보기(설명, 몸통):
+    try:
+        몸통()
+        print(설명, "-> 오류 없음")
+    catch LookupError e:
+        print(설명, "-> LookupError 로 잡음 (진짜 종류:", e.type + ")")
+    catch e:
+        print(설명, "-> 나머지:", e.type)
+
+해보기("없는 자리  ", func: [1][5])        // IndexError  -> LookupError 로 잡힘
+해보기("없는 키    ", func: {"a": 1}["b"])  // KeyError    -> LookupError 로 잡힘
+해보기("0으로 나누기", func: 1 / 0)         // MathError   -> 나머지로
+
+// Error 는 모든 것의 부모라 전부 잡습니다.
+try:
+    [1][9]
+catch Error e:
+    print("Error 로 다 잡힙니다:", e.type)
+
+
+print("")
+print("=== 7. 메시지 글자로는 잡히지 않습니다 ===")
+// 예전에는 메시지 안에 종류 이름이 우연히 들어 있으면 잘못 잡혔습니다.
+// 이제 종류는 값에 따로 담기므로 그런 일이 없습니다.
+try:
+    error("메시지에 FileNotFound 라는 글자가 들어 있습니다")
+catch FileNotFound e:
+    print("!! 이 줄은 나오면 안 됩니다")
+catch e:
+    print("제대로 - 종류는", e.type, "입니다")
+
+
+print("")
+print("=== 8. 내가 지은 종류 ===")
+// error("종류이름", "메시지") 로 아무 종류나 만들 수 있습니다.
+// 한글 종류 이름을 쓸 때는 catch 뒤에 '종류 담을이름' 을 둘 다 적어 주세요.
+func 출금(잔액, 금액):
+    if 금액 > 잔액:
+        error("잔액부족", "잔액 " + str(잔액) + "원인데 " + str(금액) + "원을 찾으려 했습니다")
+    return 잔액 - 금액
+
+try:
+    print(출금(1000, 3000))
+catch 잔액부족 e:
+    print("잡음:", e.type, "/", e.message)

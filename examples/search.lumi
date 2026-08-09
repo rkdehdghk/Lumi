@@ -1,0 +1,88 @@
+// Sequence search (찾기) in Lumi
+//
+// 두 함수 모두 '찾을 것'을 먼저, '시퀀스'를 나중에 적습니다.
+//   incount(찾을 것, 시퀀스)  ->  몇 개 있는지 (개수, 없으면 0)
+//   infind (찾을 것, 시퀀스)  ->  어디에 있는지 (자리 번호 리스트, 없으면 [])
+//
+// 자리 번호는 0부터 셉니다. 그래서 시퀀스[자리] 로 다시 꺼낼 수 있어요.
+
+print("=== 글자 세기 / 찾기 ===")
+val 말 = "hello world"
+print(말)
+print("l 은 몇 개?", incount("l", 말))          // 3
+print("l 은 어디에?", infind("l", 말))          // [2, 3, 9]
+print("o 는 어디에?", infind("o", 말))          // [4, 7]
+print("z 는 몇 개?", incount("z", 말))          // 0
+print("z 는 어디에?", infind("z", 말))          // []
+
+print("")
+print("=== 한 글자가 아니라 '여러 글자'도 찾을 수 있어요 ===")
+val 노래 = "도레미 도레미 도레"
+print("'도레' 개수:", incount("도레", 노래))     // 3
+print("'도레' 자리:", infind("도레", 노래))      // [0, 4, 8]
+print("'도레미' 개수:", incount("도레미", 노래)) // 2
+
+print("")
+print("=== 리스트에서 찾기 ===")
+val 점수 = [10, 20, 10, 30, 10]
+print("10 은 몇 개?", incount(10, 점수))        // 3
+print("10 은 어디에?", infind(10, 점수))        // [0, 2, 4]
+print("맨 처음 자리:", infind(10, 점수)[0])     // 0
+
+print("")
+print("=== 튜플에서 찾기 ===")
+val 요일 = ("월", "화", "수", "목", "금")
+print("'수' 자리:", infind("수", 요일))          // [2]
+
+print("")
+print("=== 개수와 자리는 언제나 짝이 맞아요 ===")
+// infind 가 돌려준 리스트의 길이는 incount 와 항상 같습니다.
+print(incount("l", 말), len(infind("l", 말)))   // 3 3
+
+print("")
+print("=== 없을 때 확인하기 ===")
+val 찾은자리 = infind("x", 말)
+if len(찾은자리) == 0:
+    print("x 는 없어요")
+else:
+    print("x 는 여기 있어요:", 찾은자리)
+
+print("")
+print("=== 모든 자리를 하나씩 보기 ===")
+for 자리 in infind("l", 말):
+    print("자리", 자리, "->", 말[자리])
+
+print("")
+print("=== 자리와 값을 한꺼번에: inpair ===")
+// inpair([모양,] 시퀀스) -> [자리, 값] 짝
+print(inpair(["가", "나", "다"]))                // [[0, "가"], [1, "나"], [2, "다"]]
+print(inpair("hi"))                              // [[0, "h"], [1, "i"]]
+
+for 짝 in inpair(["가", "나", "다"]):
+    print(짝[0], "번째는", 짝[1])
+
+print("")
+print("=== 모양 고르기 (list / tuple / dict) ===")
+// 모양은 따옴표 없이 앞에 적습니다. 안 적으면 list 입니다.
+val xs = ["가", "나"]
+print(inpair(xs))                                // [[0, "가"], [1, "나"]]
+print(inpair(list, xs))                          // 위와 같음
+print(inpair(tuple, xs))                         // ((0, "가"), (1, "나"))   못 바꿈
+print(inpair(dict, xs))                          // {0: "가", 1: "나"}       자리가 키
+
+// 무엇을 넣든 나오는 모양은 고른 것을 따릅니다
+print(inpair(tuple, "hi"))                       // ((0, "h"), (1, "i"))
+
+print("")
+print("=== 딕셔너리는 [키, 값] 짝 ===")
+val 나이 = {"민수": 12, "영희": 13}
+print(inpair(나이))                              // [["민수", 12], ["영희", 13]]
+print(inpair(dict, 나이))                        // 다시 딕셔너리로 (복사본)
+
+print("")
+print("=== 짝은 언제나 시퀀스 길이만큼 ===")
+print(len(inpair(말)) == len(말))                // true
+
+print("")
+print("=== insor 와 짝지으면: 자리를 잃지 않는 정렬 ===")
+print(insor(false, 1, inpair([10, 30, 20])))     // [[1, 30], [2, 20], [0, 10]]

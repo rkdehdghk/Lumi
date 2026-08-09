@@ -1,0 +1,75 @@
+// demo_shortest_path.lumi -- 최단 경로 알고리즘 데모
+// 사용법:  c-interpreter\bin\lumi.exe examples\graph\demo_shortest_path.lumi
+//
+// 도시 간 도로망(가중치 = 거리)에서
+// 다익스트라, Floyd-Warshall, 벨만-포드(음수 가중치) 를 시연합니다.
+
+bring graph up Graph, dijkstra, dijkstraPath, floydWarshall, bellmanFord
+
+print("==============================")
+print("  최단 경로 알고리즘 데모")
+print("==============================")
+print()
+
+// ---- 도시 간 거리 (무방향 가중치) ----
+val roads = Graph()
+roads.addEdge("서울", "대전", 150)
+roads.addEdge("서울", "원주", 90)
+roads.addEdge("대전", "대구", 120)
+roads.addEdge("대전", "광주", 160)
+roads.addEdge("원주", "대구", 180)
+roads.addEdge("대구", "부산", 110)
+roads.addEdge("광주", "부산", 250)
+
+print("[도로망]")
+roads.show()
+print()
+
+// ---- 다익스트라: 서울에서 모든 도시까지 ----
+val d = dijkstra(roads, "서울")
+print("[다익스트라] 서울 출발 최단 거리:")
+for city in keys(d["dist"]):
+    val p = dijkstraPath(roads, "서울", city)
+    print("   서울 -> " + city + " : " + d["dist"][city] + "km   경로:", p)
+print()
+
+// ---- 다익스트라: 부산까지의 경로만 ----
+val toBusan = dijkstraPath(roads, "서울", "부산")
+print("[서울 -> 부산 최단경로]:", toBusan)
+// 거리 계산으로 교차 검증
+val total = 0
+val k = 0
+while k < len(toBusan) - 1:
+    // 두 도시 사이 거리를 이웃에서 찾는다
+    for pair in roads.neighbors(toBusan[k]):
+        if pair[0] == toBusan[k + 1]:
+            total = total + pair[1]
+    k = k + 1
+print("[경로 거리 합]:", total, "km")
+print()
+
+// ---- Floyd-Warshall: 모든 쌍 최단 거리 행렬 ----
+val fw = floydWarshall(roads)
+print("[Floyd-Warshall 모든 쌍 최단 거리]")
+val names = fw["names"]
+val M = fw["matrix"]
+// 헤더
+print("            ", join("  ", names))
+for i in forr(val t = 0, t < len(names), t = t + 1):
+    print("   ", names[i], "  ", M[i])
+print()
+
+// ---- 벨만-포드: 음수 가중치(할인 통행료) ----
+print("[벨만-포드] 음수 가중치(할인 통행료) 방향 그래프")
+val toll = Graph()
+toll.setDirected()
+toll.addEdge("A", "B", 5)
+toll.addEdge("B", "C", 2)
+toll.addEdge("A", "C", 9)
+toll.addEdge("C", "D", -3)      // 할인 구간
+toll.addEdge("B", "D", 8)
+val bf = bellmanFord(toll, "A")
+print("  음수 사이클:", bf["negCycle"])
+print("  A 로부터 거리:")
+for node in keys(bf["dist"]):
+    print("    ", node, "=", bf["dist"][node])

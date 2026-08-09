@@ -1,0 +1,13 @@
+bad.lumi:10: this function is called 'sort', which is also a built-in - yours will never be called. Pick another name.
+bad.lumi:14: 'a' is used twice as a parameter of 'twice'
+bad.lumi:20: this line can never run: 'return' on line 19 always leaves first
+bad.lumi:23: the key "a" is set twice in this dictionary; only the last one survives
+bad.lumi:30: 'catch FileNotFund' names an error kind nothing here ever raises - if that is a typo this catch will never run. Known kinds: Error, LookupError, IndexError, KeyError, FileError, FileNotFound, TypeError, ValueError, NameError, MathError, ArgumentError, AssertError, NetworkError, DatabaseError
+bad.lumi:38: the return type of this function is written as 'str', but the value given here is int
+bad.lumi:40: '칸' is written as 'int', but the value given here is bool
+bad.lumi:43: parameter '살' of '나이' is written as 'int', but the value given here is bool
+bad.lumi:6: 'math' is brought in but never used - remove the bring line
+
+----------------------------------------
+  1 file(s), 9 thing(s) to look at
+----------------------------------------

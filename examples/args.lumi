@@ -1,0 +1,69 @@
+// 터미널에서 넘어온 인자 (command line arguments) — args()
+//
+//   args()      넘어온 인자를 전부 담은 리스트
+//   args(자리)  그 자리 하나만 (뒤에서부터 세는 음수도 됩니다)
+//
+// 첫 번째 인자(args(0))는 실행한 .lumi 파일 이름입니다.
+//
+//   lumi examples\args.lumi --port 8080 --debug
+//     -> ["examples\args.lumi", "--port", "8080", "--debug"]
+//
+// 인자 없이 그냥 돌려도 잘 됩니다 (파일 이름 하나만 들어 있습니다).
+
+print("=== 1. 넘어온 것 전부 보기 ===")
+print("개수  :", len(args()))
+
+// args(0) 은 '적어 준 그대로'라서, 어떻게 실행했느냐에 따라
+// "args.lumi" 일 수도 "C:\어디\args.lumi" 일 수도 있습니다.
+// 폴더를 떼고 이름만 쓰고 싶으면 이렇게 마지막 조각만 꺼냅니다.
+func 이름만(경로):
+    val 조각 = split("/", replace("\\", "/", 경로))
+    return 조각[-1]
+
+print("파일  :", 이름만(args(0)))
+print("나머지:", args()[1:])       // 파일 이름을 뺀 진짜 인자들
+print("")
+
+
+print("=== 2. 자리로 하나만 꺼내기 ===")
+// 자리는 리스트와 똑같습니다. 음수는 뒤에서부터 셉니다.
+// 없는 자리는 오류이니, 꺼내기 전에 개수를 세어 봅니다.
+if len(args()) > 1:
+    print("둘째  :", args(1))
+    print("마지막:", args(-1))
+else:
+    print("둘째  : (넘어온 게 없습니다)")
+    print("마지막: (하나뿐이라 파일 이름입니다)")
+print("")
+
+
+print("=== 3. --이름 값 꼴 읽기 (실무에서 제일 흔한 모양) ===")
+// --port 8080 처럼 '이름 다음 칸이 값'인 꼴을 찾아 읽습니다.
+func option(이름, 없을때):
+    val 목록 = args()
+    for val i = 0, i < len(목록) - 1, i++:
+        if 목록[i] == 이름:
+            return 목록[i + 1]
+    return 없을때
+
+print("포트  :", option("--port", "8080"))
+print("주소  :", option("--host", "localhost"))
+print("")
+
+
+print("=== 4. 그냥 있는지만 보는 깃발(flag) ===")
+func flag(이름):
+    return incount(이름, args()) > 0
+
+print("--debug 켜졌나:", flag("--debug"))
+print("")
+
+
+print("=== 5. 이름 빼고 값만 모으기 ===")
+// args(0) 은 파일 이름이니 1번 자리부터 봅니다.
+val 값들 = []
+for val i = 1, i < len(args()), i++:
+    val 하나 = args(i)
+    if strip(하나)[0:2] != "--":
+        push(값들, 하나)
+print("값들  :", 값들)

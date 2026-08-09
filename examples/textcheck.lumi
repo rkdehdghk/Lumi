@@ -1,0 +1,95 @@
+// Text checks (문자열 검사) in Lumi
+//
+// The big idea: these functions never CHANGE a value.
+// They only LOOK at the characters and answer true or false.
+//
+// A name is  HOW YOU ASK  +  WHICH KIND OF CHARACTER :
+//   is...   every character is of that kind   (모두 그런가?)
+//   has...  at least one character is         (하나라도 있나?)
+//   ...alpha  알파벳 A-Z a-z
+//   ...digit  숫자 0-9
+//   ...algit  알파벳 '또는' 숫자  (al)pha + di(git)
+
+print("=== isalpha : 전부 알파벳인가? (all letters) ===")
+print(isalpha("Lumi"))          // true
+print(isalpha("Lumi2"))         // false   숫자가 섞여 있음
+print(isalpha("Lu mi"))         // false   공백은 알파벳이 아님
+print(isalpha("가나다"))         // false   한글은 알파벳이 아님
+print(isalpha(""))              // false   확인할 글자가 없음
+
+print("=== isdigit : 전부 숫자인가? (all digits) ===")
+print(isdigit("2026"))          // true
+print(isdigit("007"))           // true
+print(isdigit("20.26"))         // false   점은 숫자가 아님
+print(isdigit("-7"))            // false   부호도 숫자가 아님
+print(isdigit("3개"))            // false
+
+print("=== isalgit : 전부 알파벳이거나 숫자인가? (all letters or digits) ===")
+print(isalgit("Lumi2026"))      // true    영어와 숫자만
+print(isalgit("Lumi"))          // true    알파벳만 있어도 됨
+print(isalgit("2026"))          // true    숫자만 있어도 됨
+print(isalgit("Lumi 2026"))     // false   공백이 섞임
+print(isalgit("lumi_2026"))     // false   밑줄이 섞임
+print(isalgit("루미2026"))       // false   한글이 섞임
+print(isalgit(""))              // false   글자가 없음
+
+print("=== hasalpha / hasdigit / hasalgit : 하나라도 있는가? (any) ===")
+print(hasalpha("a1b2"))         // true
+print(hasalpha("1234"))         // false
+print(hasdigit("a1b2"))         // true
+print(hasdigit("abcd"))         // false
+print(hasalgit("!! a !!"))      // true    알파벳이 하나 있음
+print(hasalgit("!! ?? !!"))     // false   기호와 공백뿐
+
+print("=== is 와 has 의 차이 (all vs any) ===")
+val s = "Lumi2026"
+print(isalpha(s), hasalpha(s))  // false true    알파벳이 '전부'는 아니지만 '있긴' 함
+print(isdigit(s), hasdigit(s))  // false true
+
+print("=== 입력 검사에 쓰기 (checking what the user typed) ===")
+val age = input("나이를 적어 주세요: ")
+if isdigit(age):
+    print("내년이면", num(age) + 1, "살이 되네요")
+else:
+    print("숫자만 적어 주세요. 적으신 것:", age)
+
+print("=== 비밀번호가 튼튼한지 (a practical use) ===")
+func strong(pw):
+    // 8글자 이상이면서 영어와 숫자가 둘 다 섞여야 합니다
+    return len(pw) >= 8 and hasalpha(pw) and hasdigit(pw)
+
+print(strong("lumi"))           // false   짧고 숫자도 없음
+print(strong("lumilumi"))       // false   숫자가 없음
+print(strong("12345678"))       // false   영어가 없음
+print(strong("lumi2026"))       // true
+
+print("=== 아이디는 영어와 숫자만 (a practical use of isalgit) ===")
+func ok_id(id):
+    // 4글자 이상이면서 영어와 숫자 말고는 아무것도 없어야 합니다
+    return len(id) >= 4 and isalgit(id)
+
+print(ok_id("lumi2026"))        // true
+print(ok_id("lu"))              // false   너무 짧음
+print(ok_id("lumi 2026"))       // false   공백은 안 됨
+print(ok_id("lumi_2026"))       // false   밑줄도 안 됨
+print(ok_id("루미2026"))         // false   한글은 안 됨
+
+print("=== 글자 하나씩 세어 보기 (counting by kind) ===")
+val line = "Lumi 2026 !"
+val letters = 0
+val digits = 0
+val others = 0
+for ch in line:
+    if isalpha(ch):
+        letters++
+    elif isdigit(ch):
+        digits++
+    elif not isalgit(ch):
+        others++
+print("알파벳", letters, "개 / 숫자", digits, "개 / 나머지", others, "개")
+// 알파벳 4 개 / 숫자 4 개 / 나머지 3 개
+
+print("=== 잘못 쓰면 오류 (errors) ===")
+// print(isdigit(123))       // Error: isdigit needs text (a string) but got 123
+print(isdigit(str(123)))    // true    숫자를 검사하려면 str() 로 바꿔서
+// print(hasalpha("a", "b")) // Error: hasalpha needs exactly one text value

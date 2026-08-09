@@ -1,0 +1,6 @@
+// lumi dap 시험이 돌리는 아주 작은 프로그램입니다.
+val 수 = 1
+func 두배(x):
+    return x * 2
+val 답 = 두배(수 + 4)
+print(답)

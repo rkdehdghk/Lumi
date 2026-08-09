@@ -1,0 +1,74 @@
+// Encoding & decoding (글자와 바이트) in Lumi
+//
+// 컴퓨터는 글자를 그대로 담지 못하고 0~255 사이의 '숫자'만 담습니다.
+// 어떤 글자를 어떤 숫자로 적을지 정해 둔 약속이 '인코딩' 입니다.
+//   encode([인코딩,] 문자열)  ->  글자를 바이트 객체로   (인코더)
+//   decode([인코딩,] 바이트)  ->  바이트를 다시 글자로   (디코더)
+//
+// 다른 문자열 함수들처럼 '어떻게'(인코딩)를 앞에, 다룰 값을 마지막에 적습니다.
+// 앞을 생략하면 언제나 "utf-8" 입니다.
+
+print("=== 글자를 바이트로 (encode) ===")
+val b = encode("hi")
+print(b)                    // bytes[68 69]   16진수 두 글자가 한 바이트
+print(type(b))              // bytes
+print(len(b))               // 2
+
+print("")
+print("=== 바이트를 다시 글자로 (decode) ===")
+print(decode(b))                        // hi
+print(decode(encode("Lumi")) == "Lumi") // true    기본끼리는 언제나 왕복
+
+print("")
+print("=== 한글은 몇 바이트일까 ===")
+print(len("한글"))                  // 2   글자 수
+print(len(encode("한글")))          // 6   utf-8 에서는 한 글자가 3바이트
+print(len(encode("cp949", "한글"))) // 4   cp949 에서는 한 글자가 2바이트
+print(encode("가"))                 // bytes[ea b0 80]
+print(encode("cp949", "가"))        // bytes[b0 a1]   약속이 다르면 숫자도 다름
+
+print("")
+print("=== 담을 때와 같은 약속으로 읽기 (가장 중요) ===")
+val a = encode("cp949", "안녕")
+print(decode("cp949", a))   // 안녕
+// print(decode(a))         // Error: cp949 로 담은 것을 utf-8 로 읽을 수 없음
+// print(encode("ascii", "가"))  // Error: 아스키에는 한글에 줄 숫자가 없음
+
+print("")
+print("=== 바이트도 시퀀스입니다 ===")
+print(b[0], b[-1])          // 104 105        자리 하나 -> 숫자
+print(b[0:1])               // bytes[68]      자르면 -> 바이트 객체
+print(104 in b)             // true           숫자가 들어 있는지
+print(encode("i") in b)     // true           더 작은 바이트가 들어 있는지
+print(encode("a") + encode("b"))    // bytes[61 62]         잇기 (바이트끼리만)
+print(encode("ab") * 2)             // bytes[61 62 61 62]   반복
+print(incount(encode("l"), encode("hello")))   // 2
+print(infind(encode("l"), encode("hello")))    // [2, 3]
+
+print("")
+print("=== 하나씩 꺼내 보기 ===")
+for n in encode("hi"):
+    print(n, char(n), hex(n))   // 104 h 0x68 / 105 i 0x69
+
+print("")
+print("=== 숫자 리스트와 오가기 ===")
+print(list(b))                    // [104, 105]
+print(bytes([72, 73]))            // bytes[48 49]
+print(decode(bytes([72, 73])))    // HI
+
+print("")
+print("=== bytes 자료형으로 선언하기 ===")
+bytes box = encode("ok")
+print(box, len(box))        // bytes[6f 6b] 2
+bytes empty                 // 값 없이 선언하면 빈 바이트
+print(empty, len(empty))    // bytes[] 0
+seq s = encode("seq")       // 시퀀스 가족이라 seq 로도 담깁니다
+print(s)                    // bytes[73 65 71]
+// bytes x = "hi"           // Error: 글자는 encode(...) 로 바이트를 만들어 넣기
+
+print("")
+print("=== str(바이트) 는 디코딩이 아닙니다 ===")
+print(str(b))               // bytes[68 69]   보이는 모양을 글자로 옮긴 것뿐
+print(decode(b))            // hi             이것이 진짜 되돌리기
+// print("a" + b)           // Error: '+' 는 바이트끼리만
+// b[0] = 1                 // Error: 바이트는 읽기 전용

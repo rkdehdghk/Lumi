@@ -1,0 +1,45 @@
+// 딕셔너리와 슬라이스 (Dictionaries and slices)
+
+// --- 슬라이스 : 일부만 잘라내기 (끝 번호는 포함하지 않습니다) ---
+print("--- slices ---")
+val nums = [10, 20, 30, 40, 50]
+print("nums[1:3] =", nums[1:3])     // [20, 30]
+print("nums[:2]  =", nums[:2])      // [10, 20]   앞을 생략하면 처음부터
+print("nums[3:]  =", nums[3:])      // [40, 50]   뒤를 생략하면 끝까지
+print("nums[-2:] =", nums[-2:])     // [40, 50]   음수는 뒤에서부터
+
+// 슬라이스는 '새 리스트'를 만듭니다 (원본은 그대로)
+val copy = nums[:]
+push(copy, 60)
+print("nums =", nums)               // [10, 20, 30, 40, 50]
+print("copy =", copy)               // [10, 20, 30, 40, 50, 60]
+
+// 문자열도 똑같이 자를 수 있습니다
+print("Hello"[1:4])                 // ell
+
+// --- 딕셔너리 : 이름(키) -> 값 ---
+print("--- dictionaries ---")
+val person = {"name": "Alex", "age": 20}
+print(person)
+print("name:", person["name"])      // Alex
+
+person["age"] = 21                  // 있던 키의 값 바꾸기
+person["city"] = "Seoul"            // 없던 키는 새로 추가됩니다
+print(person)
+print("len:", len(person))          // 3   (키가 몇 개인지)
+
+// for-in 으로 돌면 '값'이 아니라 '키'가 하나씩 나옵니다
+print("--- for-in over a dict ---")
+val stock = {"apple": 3, "banana": 5, "cherry": 2}
+for name in stock:
+    print(name, "x", stock[name])
+
+// 딕셔너리 도우미 함수들
+print("keys  :", keys(stock))                // 키 목록
+print("values:", values(stock))              // 값 목록
+print("has apple? ", has(stock, "apple"))    // true   있는 키인지 물어보기
+print("has mango? ", has(stock, "mango"))    // false
+
+// 딕셔너리 안에 딕셔너리 넣기
+val user = {"id": 1, "profile": {"name": "K", "level": 9}}
+print("nested name:", user["profile"]["name"])   // K

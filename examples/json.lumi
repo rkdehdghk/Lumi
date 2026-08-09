@@ -1,0 +1,37 @@
+// JSON Parsing and Serializing (JSON 모듈) in Lumi
+//
+// Lumi 는 내장 JSON 파서 및 직렬화 기능을 기본 제공합니다.
+// 별도의 외부 모듈 설치 없이 json.parse() 와 json.stringify() 로 데이터를 손쉽게 다룹니다.
+//
+//   json.parse(문자열)      ->  JSON 텍스트를 Lumi 딕셔너리 / 리스트 객체로 변환
+//   json.stringify(객체)    ->  Lumi 데이터 객체를 JSON 규격 문자열로 직렬화
+
+print("=== 1. Lumi 객체를 JSON 문자열로 변환 (json.stringify) ===")
+val user_profile = {
+    "id": 1001,
+    "name": "루미",
+    "roles": ["developer", "admin"],
+    "is_active": true,
+    "extra": none
+}
+
+val json_text = json.stringify(user_profile)
+print("직렬화 결과:")
+print(json_text)
+print("")
+
+print("=== 2. JSON 문자열을 Lumi 데이터로 파싱 (json.parse) ===")
+val incoming_json = "{\"status\": 200, \"message\": \"성공\", \"data\": [{\"id\": 1, \"title\": \"첫 글\"}]}"
+val response = json.parse(incoming_json)
+
+print("파싱 결과 딕셔너리:", response)
+print("상태 코드:", response["status"])
+print("메시지    :", response["message"])
+print("첫 번째 데이터 제목:", response["data"][0]["title"])
+print("")
+
+print("=== 3. 별칭 사용 (json_parse / json_stringify) ===")
+val data = json_parse("{\"item\": \"노트북\", \"price\": 1200000}")
+print("상품명:", data["item"])
+print("가격  :", data["price"])
+print("다시 문자열로:", json_stringify(data))

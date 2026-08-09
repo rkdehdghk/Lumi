@@ -1,0 +1,61 @@
+// switch : 한 값을 여러 후보(case)와 견주어 갈라집니다.
+//   - 비교는 == 이며, 기본 메커니즘으로 아래로 흘러내리는 폴스루(fall-through)를 지원합니다.
+//   - 다음 case로 흘러내리지 않고 빠져나가려면 break를 사용합니다.
+//   - 조건과 case 값에는 '모든 자료형'을 쓸 수 있습니다.
+
+// --- 숫자, return으로 빠져나가는 함수 ---
+func grade(score):
+    switch score:
+        case 100:
+            return "perfect"
+        case 90, 80:            // 쉼표로 여러 후보를 한 갈래에
+            return "good"
+        default:                // 어느 case 에도 안 맞을 때
+            return "keep going"
+
+print(grade(100))       // perfect
+print(grade(80))        // good
+print(grade(42))        // keep going
+
+// --- 문자열 & break 사용 ---
+val fruit = "apple"
+switch fruit:
+    case "banana", "lemon":
+        print("yellow")
+        break
+    case "apple":
+        print("red")
+        break
+    default:
+        print("unknown")
+
+// --- 참/거짓 ---
+val ready = true
+switch ready:
+    case true:
+        print("go")
+        break
+    case false:
+        print("wait")
+        break
+
+// --- 아무 자료형이나 : 튜플을 조건으로 & 폴스루(fall-through) 시연 ---
+val mode = 1
+switch mode:
+    case 1:
+        print("mode 1 active")
+        // break가 없으므로 아래 case 2 및 default 로 흘러내립니다 (fall-through).
+    case 2:
+        print("mode 2 logic executed")
+        break
+    default:
+        print("default fallback")
+
+// 반복문 안의 switch — 여기서 break를 쓰면 switch 문을 빠져나옵니다.
+for day in ["mon", "sat", "sun", "tue"]:
+    switch day:
+        case "sat", "sun":
+            print(day, "-> weekend")
+            break
+        default:
+            print(day, "-> weekday")
