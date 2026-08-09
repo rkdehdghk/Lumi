@@ -481,16 +481,20 @@ lumi fmt --check src         # 고치지 않고 '달라질 파일'만 알려 줍
 언어(`c-interpreter/src/`)를 고쳤으면 **빌드한 뒤 반드시** 돌리세요.
 
 ```
-tests\run.bat
+tests\run.bat        # 윈도우
+./tests/run.sh       # 리눅스 · 맥
 ```
 
-여섯 가지를 이어서 돌립니다.
+GitHub Actions 가 밀어 넣을 때마다 **우분투 · 맥 · 윈도우 셋 다** 돌립니다 (`.github/workflows/ci.yml`).
+
+일곱 가지를 이어서 돌립니다. (리눅스·맥은 `tests/run.sh` 가 같은 것을 같은 차례로 합니다)
 1. **예제 회귀** — `examples/` 아래의 모든 `.lumi` (아래 표 참고)
 2. **언어 단위 시험** — `tests/lang/*.lumi` 를 `lumi test` 로
 3. **lint** — `examples/` 와 `libraries/` 는 **깨끗해야** 하고, 일부러 일곱 규칙을 다 어겨 둔 `tests/lint/bad.lumi` 는 골든 파일과 같아야 합니다 (lint 가 멀쩡한 코드에 짖기 시작하면 여기서 잡힙니다)
 4. **fmt** — `examples/` 와 `libraries/` 는 `fmt --check` 로 **하나도 안 바뀌어야** 하고 (포매터가 멀쩡한 코드를 다시 흐트러뜨리면 여기서 잡힙니다), 일부러 지저분한 `tests/fmt/messy.src` 는 다듬은 결과가 골든 파일과 같아야 합니다
 5. **디버거** — 미리 적어 둔 DAP 대화(`tests/dap/session.txt`)를 `lumi dap` 에 흘려 넣고 답을 통째로 골든과 견줍니다
-6. **HTTP 서버** — `tests/http/{server,client}.lumi` 두 프로세스로
+6. **CRLF 소스** — 일부러 CRLF 로 저장한 `tests/crlf/blankline.lumi` 가 LF 파일과 똑같이 파싱돼야 합니다
+7. **HTTP 서버** — `tests/http/{server,client}.lumi` 두 프로세스로
 
 `examples/` 아래의 모든 `.lumi` 를 (하위 폴더까지) 실행해서 검사합니다.
 
