@@ -58,7 +58,7 @@ for f in $(find ../examples -name '*.lumi' | sort); do
         else
             FAIL=$((FAIL + 1))
             echo "[FAIL] $key - output differs from the golden file"
-            echo "        diff expected/$key.txt $out"
+            diff "expected/$key.txt" "$out" | head -30
         fi
     else
         PASS=$((PASS + 1))
@@ -102,7 +102,7 @@ if [ -f expected/_lint.txt ]; then
     else
         FAIL=$((FAIL + 1))
         echo "[FAIL] lint/bad.lumi - findings differ from the golden file"
-        echo "        diff expected/_lint.txt actual/_lint.txt"
+        diff expected/_lint.txt actual/_lint.txt | head -30
     fi
 else
     echo "[!] expected/_lint.txt missing - run record.bat on Windows"
@@ -133,7 +133,7 @@ if [ -f expected/_fmt_messy.txt ]; then
     else
         FAIL=$((FAIL + 1))
         echo "[FAIL] fmt/messy.lumi - tidied output differs from the golden file"
-        echo "        diff expected/_fmt_messy.txt fmt/messy.lumi"
+        diff expected/_fmt_messy.txt fmt/messy.lumi | head -30
     fi
 else
     echo "[!] expected/_fmt_messy.txt missing - run record.bat on Windows"
@@ -151,7 +151,7 @@ if [ -f expected/_dap.txt ]; then
     else
         FAIL=$((FAIL + 1))
         echo "[FAIL] lumi dap - the conversation differs from the golden file"
-        echo "        diff expected/_dap.txt actual/_dap.txt"
+        diff expected/_dap.txt actual/_dap.txt | head -30
     fi
 else
     echo "[!] expected/_dap.txt missing - run record.bat on Windows"

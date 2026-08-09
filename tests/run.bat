@@ -49,7 +49,7 @@ for /r "..\examples" %%F in (*.lumi) do (
     if errorlevel 1 (
       set /a FAIL+=1
       echo [FAIL] !KEY! - output differs from the golden file
-      echo         fc expected\!KEY!.txt !OUT!
+      fc expected\!KEY!.txt !OUT!
     ) else (
       set /a PASS+=1
     )
@@ -102,7 +102,7 @@ if exist expected\_lint.txt (
   if errorlevel 1 (
     set /a FAIL+=1
     echo [FAIL] lint\bad.lumi - findings differ from the golden file
-    echo         fc expected\_lint.txt actual\_lint.txt
+    fc expected\_lint.txt actual\_lint.txt
   ) else (
     echo   bad.lumi caught as expected
   )
@@ -133,6 +133,9 @@ if errorlevel 1 (
 
 REM fmt\messy.lumi is deliberately badly spaced; tidying it must give the
 REM golden file exactly. That is the half that proves fmt actually does something.
+REM messy.lumi 는 저장소에 없습니다 - messy.src 에서 매번 새로 만듭니다.
+REM (이걸 빠뜨려서 새로 클론한 CI 에서만 깨졌습니다)
+copy /y fmt\messy.src fmt\messy.lumi >nul
 pushd fmt
 "%~dp0..\c-interpreter\bin\lumi.exe" fmt messy.lumi > nul 2>&1
 popd
@@ -141,7 +144,7 @@ if exist expected\_fmt_messy.txt (
   if errorlevel 1 (
     set /a FAIL+=1
     echo [FAIL] fmt\messy.lumi - tidied output differs from the golden file
-    echo         fc expected\_fmt_messy.txt fmt\messy.lumi
+    fc expected\_fmt_messy.txt fmt\messy.lumi
   ) else (
     echo   messy.lumi tidied as expected
   )
@@ -164,7 +167,7 @@ if exist expected\_dap.txt (
   if errorlevel 1 (
     set /a FAIL+=1
     echo [FAIL] lumi dap - the conversation differs from the golden file
-    echo         fc expected\_dap.txt actual\_dap.txt
+    fc expected\_dap.txt actual\_dap.txt
   ) else (
     echo   dap session as expected
   )

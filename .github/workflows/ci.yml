@@ -68,6 +68,20 @@ jobs:
         shell: cmd
         run: tests\run.bat
 
+      # 로그만 보고 고칠 수 있어야 합니다 — 아티팩트를 받아 보지 않아도 되도록
+      # 오류로 끝난 출력은 여기서 바로 펼쳐 찍습니다.
+      - name: 깨졌을 때 오류가 난 출력 찍기
+        if: failure()
+        shell: bash
+        run: |
+          for f in tests/actual/*.txt; do
+            [ -f "$f" ] || continue
+            if grep -q "^Error:" "$f"; then
+              echo "───────── $f ─────────"
+              head -60 "$f"
+            fi
+          done
+
       # 깨졌을 때 무엇이 어떻게 달랐는지 보려면 실제 출력이 필요합니다.
       - name: 깨졌을 때 실제 출력 올리기
         if: failure()
