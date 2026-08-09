@@ -31,7 +31,7 @@ ABC ["a", "b", "c"]
 === 어느 쪽을 쓸까 ===
 이름	점수
 루미	100
-C:\Windows\notepad.exe true
+C:\Windows\notepad.exe
 false
 말 안에 "따옴표" don't
 

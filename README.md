@@ -498,6 +498,9 @@ GitHub Actions 가 밀어 넣을 때마다 **우분투 · 맥 · 윈도우 셋 �
 
 `examples/` 아래의 모든 `.lumi` 를 (하위 폴더까지) 실행해서 검사합니다.
 
+> ⚠️ **골든은 기계 독립적이어야 합니다.** 예제가 그 컴퓨터에만 있는 것을 찍으면 다른 OS 에서 무조건 깨집니다. 실제로 `isfile('C:\Windows
+otepad.exe')` 가 윈도우에서 `true`, 리눅스에서 `false` 라 CI 가 빨간불이 됐습니다. 절대 경로·사용자명·시각·난수·`env(...)` 는 골든에 넣지 마세요 (넣어야 하면 `tests/nondeterministic.txt` 에 KEY 를 적어 골든 없이 스모크로만 돌립니다).
+
 파일마다 **KEY** 가 붙습니다 — `examples\` 아래 경로에서 `\` 를 `_` 로 바꾸고 `.lumi` 를 뗀 것입니다.
 `examples\hello.lumi` → `hello`, `examples\graph\menu.lumi` → `graph_menu`.
 

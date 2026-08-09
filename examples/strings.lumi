@@ -53,7 +53,9 @@ val 표 = "이름\t점수\n루미\t100"
 print(표)
 // 주소는 언제나 작은따옴표 (탐색기에서 복사해 그대로 붙여넣기)
 val 경로 = 'C:\Windows\notepad.exe'
-print(경로, isfile(경로))                    // C:\Windows\notepad.exe true
+print(경로)                                  // C:\Windows\notepad.exe  \ 가 그대로 살아 있습니다
+// (그 파일이 정말 있는지는 여기서 묻지 않습니다 — 윈도우에만 있는 파일이라
+//  리눅스·맥에서는 답이 달라져 시험이 기계마다 갈립니다)
 print(isfile('note.txt'))                   // false    이름만 적은 것도 주소입니다
 // 안에 " 를 넣고 싶으면 작은따옴표, ' 를 넣고 싶으면 큰따옴표
 print('말 안에 "따옴표"', "don't")

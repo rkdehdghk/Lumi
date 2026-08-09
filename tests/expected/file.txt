@@ -18,7 +18,7 @@ false
 true
 true
 true
-true
+C:\Windows\notepad.exe
 
 === 줄로 나누어 다루기 ===
 줄 수: 3

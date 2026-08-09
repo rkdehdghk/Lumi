@@ -42,7 +42,9 @@ print(isfile('../README.md'))                // true    .. 는 한 폴더 위
 print(isfile('../libraries/math.lumi'))      // true    위로 갔다 옆 폴더로
 print(read('../examples/note.txt') == read('note.txt'))   // true  돌아서 온 같은 파일
 // 통째로 적은 경로도 그대로 씁니다. 주소는 작은따옴표라서 \ 를 손댈 것이 없습니다:
-print(isfile('C:\Windows\notepad.exe'))      // true   ' ' 안에서는 \ 가 그냥 \
+print('C:\Windows\notepad.exe')              // 그대로   ' ' 안에서는 \ 가 그냥 \
+// (있는지까지 묻지는 않습니다 — 윈도우에만 있는 파일이라 리눅스·맥에서
+//  답이 달라지고, 그러면 골든 파일이 기계마다 갈립니다)
 // 큰따옴표로 적었다면 \n 이 줄바꿈이 되어 오류로 알려 줍니다 (strings.lumi 참고).
 
 print("")
