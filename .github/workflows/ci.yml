@@ -77,11 +77,13 @@ jobs:
           ./c-interpreter/bin/lumi examples/database.lumi | tee /tmp/db.txt
           grep -q "^Error:" /tmp/db.txt && exit 1 || exit 0
 
-      - name: 진단 C - SQLite 라이브러리가 있나
+      - name: 진단 C - SQLite 라이브러리를 열 수 있나
         if: runner.os != 'Windows'
         continue-on-error: true
-        run: ./c-interpreter/bin/lumi -c 'bring sqlite
-print(sqlite.version())'
+        # sqlite.lumi 는 맨 위에서 val _lib = _찾기() 로 라이브러리를 엽니다.
+        # 그래서 bring 한 줄이면 '열리는가' 를 그대로 확인합니다.
+        run: ./c-interpreter/bin/lumi -c 'bring sqlite'
+
       # --- 여기까지 ------------------------------------------------------
 
       - name: 시험 (POSIX)
