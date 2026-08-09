@@ -20,3 +20,7 @@ Thumbs.db
 
 # 빌드 도구가 남기는 로그
 aqtinstall.log
+
+# 도구가 만드는 로컬 파일 (프로젝트 것이 아닙니다)
+.claude/
+.zcode/
