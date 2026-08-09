@@ -68,7 +68,7 @@
 - [ ] **Step 1: 기존 src 백업**
 
 ```bash
-cd "C:/Users/lumi-user/문서/word file/Lumina/ide-cpp"
+cd "<프로젝트 폴더>/ide-cpp"
 mkdir -p src_win32_backup
 cp src/*.cpp src/*.h src/*.rc src_win32_backup/ 2>/dev/null
 ls src_win32_backup/
@@ -83,7 +83,7 @@ Expected: `console.cpp editor.cpp explorer.cpp lang.cpp lumina.h lumina.rc main.
 
 백업이 확인되면 기존 `src/*.cpp` 삭제하여 Qt 구조로 재구성 준비:
 ```bash
-cd "C:/Users/lumi-user/문서/word file/Lumina/ide-cpp"
+cd "<프로젝트 폴더>/ide-cpp"
 rm -f src/*.cpp src/*.h src/*.rc
 mkdir -p src/core src/theme src/models src/widgets src/panels
 ```
@@ -107,7 +107,7 @@ Expected: `src/` 하위에 `core theme models widgets panels` 빈 디렉토리 �
 
 기존 `Lumi&na logo/lumina_icon_TB_icon.ico` 재사용:
 ```bash
-cd "C:/Users/lumi-user/문서/word file/Lumina/ide-cpp"
+cd "<프로젝트 폴더>/ide-cpp"
 mkdir -p assets
 cp "../Lumi&na logo/lumina_icon_TB_icon.ico" assets/lumina.ico
 ```
@@ -256,12 +256,12 @@ exit /b 1
 
 - [ ] **Step 6: 빌드 실행 및 검증**
 
-Run: `cd "C:/Users/lumi-user/문서/word file/Lumina/ide-cpp" && cmd //c build.bat`
+Run: `cd "<프로젝트 폴더>/ide-cpp" && cmd //c build.bat`
 Expected: `Build complete: ide-cpp\bin\Lumina.exe` 출력. `bin/Lumina.exe` 생성. Qt DLL들과 `bin/platforms/` 복사됨.
 
 - [ ] **Step 7: 실행 검증**
 
-Run: `cd "C:/Users/lumi-user/문서/word file/Lumina/ide-cpp/bin" && ./Lumina.exe &` (또는 사용자가 더블클릭)
+Run: `cd "<프로젝트 폴더>/ide-cpp/bin" && ./Lumina.exe &` (또는 사용자가 더블클릭)
 Expected: "Lumina" 제목 창이 뜨고 "Lumina IDE — Qt6 build pipeline OK" 라벨 + "Run" 버튼 표시.
 
 빌드 파이프라인이 Qt6+CMake+Ninja+windeployqt로 작동함을 확인. (창을 닫을 때까지 블로킹이므로 백그라운드 실행 후 별도 확인.)
@@ -495,7 +495,7 @@ set(APP_SOURCES
 
 - [ ] **Step 5: 빌드 및 실행 검증**
 
-Run: `cd "C:/Users/lumi-user/문서/word file/Lumina/ide-cpp" && cmd //c build.bat`
+Run: `cd "<프로젝트 폴더>/ide-cpp" && cmd //c build.bat`
 Expected: 빌드 성공. 실행 시 메뉴바(File/Run/View), 툴바(Run/Stop/Save/Open/Theme), 상태바("Ready") 있는 빈 창.
 
 - [ ] **Step 6: 메뉴/단축키 동작 확인**

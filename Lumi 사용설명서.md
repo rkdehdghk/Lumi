@@ -2915,7 +2915,7 @@ print(clamp(50, 0, 100))          // 50      안이면 그대로
 
 #### 4) 환경 변수 — `env`
 ```
-print(env("USERNAME"))            // "lumi-user"
+print(env("USERNAME"))            // "내이름"
 print(env("NO_SUCH_NAME"))        // none
 ```
 - 운영체제가 갖고 있는 설정값을 읽습니다. 없는 이름이면 **오류가 아니라 `none`** 입니다.
@@ -3037,7 +3037,7 @@ print(add(mul([80, 90], [1.1, 1.0]), 5))   // 겹쳐 쓰기
 | `filter(함수, 시퀀스)` | 조건 함수가 참인 요소만 추출하여 새 시퀀스 반환 | `filter(is_even, [1,2,3,4])` → `[2, 4]` |
 | `sum(시퀀스)` | 리스트/튜플 숫자의 총 합계 반환 | `sum([10, 20, 30])` → `60` |
 | `clamp(값, 최소, 최대)` | 값을 최소~최대 범위 안으로 제한 | `clamp(120, 0, 100)` → `100` |
-| `env(이름)` / `getenv(이름)` | OS 환경 변수 값 읽기 (없으면 none) | `env("USERNAME")` → `"lumi-user"` |
+| `env(이름)` / `getenv(이름)` | OS 환경 변수 값 읽기 (없으면 none) | `env("USERNAME")` → `"내이름"` |
 | `args()` / `args(자리)` | 터미널에서 넘어온 인자 (전부 / 한 자리) | `args()` → `["app.lumi", "--port", "8080"]` |
 | `assert(조건[, 설명])` | 참이 아니면 그 시험을 실패로 (AssertError) | `assert(a == b, "같아야 합니다")` |
 | `assertsame(기대, 나온 것)` | 다르면 실패하며 **둘 다** 보여 줌 | `assertsame(7, 더하기(3,4))` |
