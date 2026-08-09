@@ -27,7 +27,7 @@ func f():
 
 실제로 `libraries/sqlite.lumi` 가 이렇게 깨져 **`bring sqlite` 가 통째로 안 됐습니다.** 예제·라이브러리가 모두 LF 로 저장돼 있어서 시험이 한 번도 못 잡았습니다.
 
-- 고친 곳: `src/lexer.c` 의 빈 줄 판정에 `''` 추가.
+- 고친 곳: `src/lexer.c` 의 빈 줄 판정에 캐리지 리턴(\r)을 더했습니다.
 - 회귀 시험: `tests/crlf/blankline.lumi` — **일부러 CRLF 로 저장한** 파일이고, `run.bat`·`run.sh` 둘 다 이것이 파싱되는지 봅니다. `.gitattributes` 의 `* -text` 가 그 줄 끝을 지켜 줍니다.
 - 예전 코드는 그대로 돕니다. LF 파일의 동작은 한 글자도 안 달라집니다.
 
