@@ -1,7 +1,7 @@
 // lint 가 잡아야 하는 것들만 모아 둔 파일입니다.  실행하려고 만든 것이 아닙니다.
 // tests\run.bat 이 여기에 lint 를 걸어 expected\_lint.txt 와 견줍니다.
 //
-// 일곱 규칙이 하나씩 들어 있습니다 — 하나라도 안 잡히면 시험이 깨집니다.
+// 아홉 규칙이 하나씩 들어 있습니다 — 하나라도 안 잡히면 시험이 깨집니다.
 
 bring math                       // L6: 가져와 놓고 안 씀
 bring json
@@ -39,5 +39,17 @@ func 나이(int 살) str:
 
 int 칸 = true
 
+// L8: 인자 개수가 안 맞음 (모자람 · 남음 · 없는 이름 · 두 번)
+func pair(a, b = 2):
+    return a + b
+
+print(pair())
+print(pair(1, 2, 3))
+print(pair(1, nope = 9))
+print(pair(1, a = 5))
+
+// L9: 이 파일 어디에도 없는 이름 (오타)
 print(sort([3, 1, 2]), twice(1, 2, 3), after(1), table, json.stringify(table))
 print(나이("여러 글자"), 나이(true), 칸)
+print(typo_here)
+missing_call(1)

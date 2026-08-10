@@ -5,9 +5,15 @@ bad.lumi:23: the key "a" is set twice in this dictionary; only the last one surv
 bad.lumi:30: 'catch FileNotFund' names an error kind nothing here ever raises - if that is a typo this catch will never run. Known kinds: Error, LookupError, IndexError, KeyError, FileError, FileNotFound, TypeError, ValueError, NameError, MathError, ArgumentError, AssertError, NetworkError, DatabaseError
 bad.lumi:38: the return type of this function is written as 'str', but the value given here is int
 bad.lumi:40: '칸' is written as 'int', but the value given here is bool
-bad.lumi:43: parameter '살' of '나이' is written as 'int', but the value given here is bool
+bad.lumi:46: 'pair' needs a value for 'a'
+bad.lumi:47: 'pair' takes 2 value(s) but is given 3 here
+bad.lumi:48: 'pair' has no parameter named 'nope'
+bad.lumi:49: 'pair' is given two values for 'a'
+bad.lumi:53: parameter '살' of '나이' is written as 'int', but the value given here is bool
+bad.lumi:54: 'typo_here' is not defined anywhere in this file - is it a typo?
+bad.lumi:55: 'missing_call' is not defined anywhere in this file - is it a typo, or did you forget a 'bring'?
 bad.lumi:6: 'math' is brought in but never used - remove the bring line
 
 ----------------------------------------
-  1 file(s), 9 thing(s) to look at
+  1 file(s), 15 thing(s) to look at
 ----------------------------------------

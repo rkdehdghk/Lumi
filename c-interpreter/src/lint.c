@@ -6,7 +6,7 @@
  * 문법 오류는 여기서 다루지 않습니다 (그건 실행하거나 편집기가 바로 알려 줍니다).
  * 여기서 찾는 것은 **문법은 맞는데 아마 뜻이 어긋난 것**들입니다.
  *
- * 규칙 일곱:
+ * 규칙 아홉:
  *   L1  내가 만든 이름이 내장 함수를 가림   func sort(...) 처럼
  *   L2  catch 에 적은 오류 종류가 낯설다     catch FileNotFund e:  (오타)
  *   L3  절대 닿지 않는 줄                    return 뒤에 적힌 것
@@ -14,6 +14,8 @@
  *   L5  딕셔너리에 같은 키가 두 번           {"a": 1, "a": 2}
  *   L6  가져와 놓고 안 쓰는 라이브러리       bring math 뒤 math 를 안 씀
  *   L7  적어 둔 자료형과 어긋나는 값         func f(int a) 를 f("가") 로 부름
+ *   L8  인자 개수가 안 맞음                 func f(a) 를 f(1, 2) 로 부름
+ *   L9  이 파일 어디에도 없는 이름           print(typo_var)  (오타)
  *
  * 규칙을 고를 때의 잣대: **'조용히 틀리는 것'을 잡되, 멀쩡한 코드를 나무라지 않기.**
  * 그래서 헷갈릴 여지가 있는 것(안 쓰는 변수 등)은 일부러 뺐습니다 —
@@ -59,6 +61,14 @@ typedef struct {
     size_t nfuncs, cfuncs;
 
     const char *cur_ret;             /* L7 — 지금 훑는 함수가 돌려주기로 적어 둔 자료형 */
+
+    /* L9 를 위해: 이 파일이 **어디서든** 만들어 내는 이름 전부 (첫 바퀴에 모읍니다).
+     * 자리(scope)를 따지지 않고 한 자루에 담습니다.  일부러 그렇게 했습니다 —
+     * 자리를 따지면 '바깥 함수의 이름을 안쪽에서 잘못 쓴 것'까지 잡을 수 있지만
+     * 거짓 경고가 딸려 옵니다.  오타 잡기가 목적이라 이 정도가 알맞습니다. */
+    char **names;
+    size_t nnames, cnames;
+    bool names_unknown;              /* 어디선가 이름이 새로 들어와 다 알 수 없음 */
 
     bool collecting;                 /* 첫 바퀴에는 아무 말도 하지 않습니다 */
 } Lint;
@@ -107,6 +117,41 @@ static void add_called(Lint *L, const char *name)
     L->called[L->ncalled++] = xstrdup(name);
 }
 
+/* ---- L9 : 이 파일에 없는 이름 ------------------------------------- */
+
+static const LumiWordDef *builtin_named(const char *name);   /* 아래에 있습니다 */
+
+static void add_name(Lint *L, const char *name)
+{
+    if (!name) return;
+    for (size_t i = 0; i < L->nnames; i++) if (strcmp(L->names[i], name) == 0) return;
+    if (L->nnames == L->cnames) {
+        L->cnames = L->cnames ? L->cnames * 2 : 32;
+        L->names = (char **)xrealloc(L->names, L->cnames * sizeof(char *));
+    }
+    L->names[L->nnames++] = xstrdup(name);
+}
+
+static bool known_name(Lint *L, const char *name)
+{
+    if (!name) return true;
+    if (L->names_unknown) return true;           /* 이 파일은 L9 를 끕니다 */
+    if (builtin_named(name)) return true;        /* 내장 함수·자료형·문법 낱말 */
+    for (size_t i = 0; i < L->nnames; i++) if (strcmp(L->names[i], name) == 0) return true;
+    return false;
+}
+
+/* what 은 "call" 이면 부르는 자리, 아니면 값을 읽는 자리입니다 */
+static void check_known(Lint *L, const char *name, int line, bool is_call)
+{
+    if (L->collecting || known_name(L, name)) return;
+    if (is_call)
+        say(L, line, "'%s' is not defined anywhere in this file - is it a typo, "
+                     "or did you forget a 'bring'?", name);
+    else
+        say(L, line, "'%s' is not defined anywhere in this file - is it a typo?", name);
+}
+
 static void add_func(Lint *L, const char *name, FuncDefNode *fd)
 {
     for (size_t i = 0; i < L->nfuncs; i++)
@@ -125,6 +170,16 @@ static FuncDefNode *find_func(Lint *L, const char *name)
     for (size_t i = 0; i < L->nfuncs; i++)
         if (strcmp(L->funcs[i].name, name) == 0) return L->funcs[i].fd;
     return NULL;
+}
+
+/* 그 이름에 값이 담긴 적이 있으면 (val f = ...), 부를 때 어느 쪽이 불릴지
+ * 알 수 없으므로 그 함수는 더 안 봅니다.  L7·L8 이 거짓 경고를 내지 않게. */
+static void poison_func(Lint *L, const char *name)
+{
+    if (!name) return;
+    for (size_t i = 0; i < L->nfuncs; i++)
+        if (strcmp(L->funcs[i].name, name) == 0) { L->funcs[i].fd = NULL; return; }
+    add_func(L, name, NULL);
 }
 
 /* ---- L7 : 돌려보지 않고도 알 수 있는 자료형 어긋남 ----------------
@@ -176,6 +231,67 @@ static void check_typed_value(Lint *L, const char *want, Node *value, const char
     if (!got || type_takes(want, got)) return;
     say(L, value->line, "%s is written as '%s', but the value given here is %s",
         lead, want, got);
+}
+
+/* ---- L8 : 인자 개수가 안 맞는가 -----------------------------------
+ * 이 파일 안에 적힌 함수를 부를 때만 봅니다.  규칙은 interp.c 의
+ * invoke_function_kw 를 그대로 옮긴 것입니다 — 거기를 고치면 여기도 고치세요.
+ * 이름이 두 번 나오거나 값으로 덮어써진 함수는 find_func 가 NULL 을 주므로
+ * 조용히 넘어갑니다 (거짓 경고 금지). */
+static void check_call_arity(Lint *L, const char *name, NodeList *args, int line)
+{
+    FuncDefNode *fd = find_func(L, name);
+    if (!fd) return;
+    size_t np = fd->nparams;
+
+    bool *got = np ? (bool *)xmalloc(np * sizeof(bool)) : NULL;
+    for (size_t i = 0; i < np; i++) got[i] = false;
+
+    size_t at = 0;                      /* 다음 이름 없는 인자가 놓일 자리 */
+    bool saw_named = false;
+    for (size_t i = 0; i < args->len; i++) {
+        Node *a = args->items[i];
+        if (!a) continue;
+        if (a->kind != N_KWARG) {
+            if (saw_named) {
+                say(L, a->line, "'%s' got a plain value after a named one; "
+                                "put the named ones (name = value) last", name);
+                free(got);
+                return;
+            }
+            if (at >= np) {
+                say(L, a->line, "'%s' takes %zu value(s) but is given %zu here",
+                    name, np, args->len);
+                free(got);
+                return;
+            }
+            got[at++] = true;
+            continue;
+        }
+        saw_named = true;
+        size_t k = np;
+        for (size_t j = 0; j < np; j++)
+            if (strcmp(fd->params[j], a->v.kwarg.name) == 0) { k = j; break; }
+        if (k == np) {
+            say(L, a->line, "'%s' has no parameter named '%s'", name, a->v.kwarg.name);
+            free(got);
+            return;
+        }
+        if (got[k]) {
+            say(L, a->line, "'%s' is given two values for '%s'", name, fd->params[k]);
+            free(got);
+            return;
+        }
+        got[k] = true;
+    }
+
+    for (size_t i = 0; i < np; i++) {
+        if (got[i]) continue;
+        if (fd->defaults && fd->defaults[i]) continue;    /* 기본값이 채웁니다 */
+        say(L, line, "'%s' needs a value for '%s'", name, fd->params[i]);
+        break;
+    }
+    free(got);
 }
 
 /* 이 함수를 이렇게 부르면 자료형이 어긋나는가 */
@@ -289,6 +405,10 @@ static void walk_funcdef(Lint *L, FuncDefNode *fd, int line, bool is_method)
         check_shadow(L, fd->name, line, "function");
     if (L->collecting && fd->name && !is_method && strcmp(fd->name, "nameless") != 0)
         add_func(L, fd->name, fd);
+    if (L->collecting) {
+        if (fd->name && strcmp(fd->name, "nameless") != 0) add_name(L, fd->name);
+        for (size_t i = 0; i < fd->nparams; i++) add_name(L, fd->params[i]);
+    }
 
     /* L4 — 매개변수 이름 겹침 */
     for (size_t i = 0; i < fd->nparams; i++)
@@ -320,6 +440,7 @@ static void walk(Lint *L, Node *n)
 
     case N_VAR:
         mark_used(L, n->v.var.name);
+        check_known(L, n->v.var.name, n->line, false);
         return;
 
     case N_FSTRING: walk_list(L, &n->v.fstring.parts); return;
@@ -337,16 +458,35 @@ static void walk(Lint *L, Node *n)
             check_typed_value(L, n->v.assign.type_name, n->v.assign.value, lead);
             free(lead);
         }
+        if (L->collecting) {
+            /* 이 이름에 값이 담기면 같은 이름의 func 는 더 못 믿습니다 (L7·L8) */
+            poison_func(L, n->v.assign.name);
+            /* val / int x / global x 는 이름을 새로 만듭니다.  그냥 'x = 1' 은
+             * 만들지 않습니다 — 없는 이름에 담으면 실행할 때 NameError 입니다. */
+            if (n->v.assign.is_let || n->v.assign.type_name || n->v.assign.scope)
+                add_name(L, n->v.assign.name);
+        } else if (!n->v.assign.is_let && !n->v.assign.type_name && !n->v.assign.scope) {
+            check_known(L, n->v.assign.name, n->line, false);
+        }
         walk(L, n->v.assign.value);
         return;
 
-    case N_MULTI_ASSIGN: walk(L, n->v.multi_assign.value); return;
+    case N_MULTI_ASSIGN:
+        if (L->collecting)
+            for (size_t i = 0; i < n->v.multi_assign.nnames; i++)
+                add_name(L, n->v.multi_assign.names[i]);
+        walk(L, n->v.multi_assign.value);
+        return;
     case N_MULTI:        walk_list(L, &n->v.multi.body); return;
 
     case N_CALL:
         mark_used(L, n->v.call.name);
         if (L->collecting) add_called(L, n->v.call.name);
-        else check_call_types(L, n->v.call.name, &n->v.call.args);
+        else {
+            check_known(L, n->v.call.name, n->line, true);
+            check_call_arity(L, n->v.call.name, &n->v.call.args, n->line);
+            check_call_types(L, n->v.call.name, &n->v.call.args);
+        }
         walk_list(L, &n->v.call.args);
         return;
 
@@ -375,6 +515,7 @@ static void walk(Lint *L, Node *n)
         ClassDefNode *cd = n->v.classdef;
         if (!cd) return;
         check_shadow(L, cd->name, n->line, "class");
+        if (L->collecting) add_name(L, cd->name);
         for (size_t i = 0; i < cd->nmethods; i++) {
             Node *m = cd->methods[i];
             if (m && m->kind == N_FUNCDEF) walk_funcdef(L, m->v.funcdef, m->line, true);
@@ -422,6 +563,17 @@ static void walk(Lint *L, Node *n)
         const char *bound = n->v.bring.as_name;
         if (!bound && !n->v.bring.is_path) bound = n->v.bring.lib;
         if (n->v.bring.all && bound && !L->collecting) add_bring(L, bound, n->line);
+        if (L->collecting) {
+            /* 'bring lib' 은 lib 하나를, 'bring lib up a, b' 는 a 와 b 를 들여옵니다.
+             * 경로로 가져올 때(bring "models/user")는 파일 이름이 곧 이름입니다 —
+             * 그건 실행할 때 정해지므로 여기서는 알 수 없어, 그 파일은 L9 를 끕니다. */
+            if (n->v.bring.all) {
+                if (bound) add_name(L, bound);
+                else L->names_unknown = true;
+            }
+            for (size_t i = 0; i < n->v.bring.nnames; i++)
+                add_name(L, n->v.bring.names[i]);
+        }
         return;
     }
 
@@ -450,10 +602,12 @@ static void walk(Lint *L, Node *n)
     }
 
     case N_LIST_COMP:
+        if (L->collecting) add_name(L, n->v.list_comp.var_name);
         walk(L, n->v.list_comp.iterable); walk(L, n->v.list_comp.expr);
         walk(L, n->v.list_comp.cond);
         return;
     case N_DICT_COMP:
+        if (L->collecting) add_name(L, n->v.dict_comp.var_name);
         walk(L, n->v.dict_comp.iterable); walk(L, n->v.dict_comp.key_expr);
         walk(L, n->v.dict_comp.val_expr); walk(L, n->v.dict_comp.cond);
         return;
@@ -474,15 +628,18 @@ static void walk(Lint *L, Node *n)
         walk_list(L, &n->v.forc.body);
         return;
     case N_FORIN:
+        if (L->collecting) add_name(L, n->v.forin.var_name);
         walk(L, n->v.forin.iterable);
         check_unreachable(L, &n->v.forin.body);
         walk_list(L, &n->v.forin.body);
         return;
     case N_FORR:
+        if (L->collecting) add_name(L, n->v.forr.var_name);
         walk(L, n->v.forr.init); walk(L, n->v.forr.cond); walk(L, n->v.forr.step);
         return;
 
     case N_USE:
+        if (L->collecting) add_name(L, n->v.use.var_name);
         walk(L, n->v.use.value);
         check_unreachable(L, &n->v.use.body);
         walk_list(L, &n->v.use.body);
@@ -493,6 +650,7 @@ static void walk(Lint *L, Node *n)
         walk_list(L, &n->v.try_.try_body);
         for (size_t i = 0; i < n->v.try_.ncatches; i++) {
             struct CatchClause *cc = &n->v.try_.catches[i];
+            if (L->collecting) add_name(L, cc->var_name);
             /* L2 — 낯선 종류 이름.  오타면 그 catch 는 영원히 안 잡힙니다. */
             if (cc->type_name && !kind_is_known(L, cc->type_name))
                 say(L, cc->line,
@@ -625,6 +783,8 @@ int lint_source(const char *text, LintReport report, void *ud)
     free(L.called);
     for (size_t i = 0; i < L.nfuncs; i++) free(L.funcs[i].name);
     free(L.funcs);
+    for (size_t i = 0; i < L.nnames; i++) free(L.names[i]);
+    free(L.names);
     free(prog.items);
     return L.found;
 }

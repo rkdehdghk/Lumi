@@ -208,7 +208,17 @@ static const LumiWordDef LUMI_WORDS[] = {
     {"div",      LW_FUNC, "(a, b) -> elementwise division number or sequence"},
     {"mod",      LW_FUNC, "(a, b) -> elementwise modulo number or sequence"},
     {"pow",      LW_FUNC, "(a, b) -> elementwise power number or sequence"},
-    {"neg",      LW_FUNC, "(a) -> elementwise negation number or sequence"}
+    {"neg",      LW_FUNC, "(a) -> elementwise negation number or sequence"},
+    /* 표에 빠져 있던 것들 — lint 의 L9(없는 이름)가 찾아냈습니다.
+     * 여기 없으면 편집기 자동완성에도 안 뜨고 lint 가 오타로 오해합니다. */
+    {"gc",       LW_FUNC, "() -> how many values that held each other were cleared"},
+    {"isdir",    LW_FUNC, "(path) -> is it a folder?"},
+    {"json_parse",     LW_FUNC, "(text) -> value    same as json.parse"},
+    {"json_stringify", LW_FUNC, "(value[, indent]) -> text    same as json.stringify"},
+    /* 값처럼 적는 표시말 — 함수가 아니라 '어느 쪽'을 고르는 낱말입니다 */
+    {"json",     LW_FUNC, ".parse(text) / .stringify(value)   built-in library"},
+    {"file",     LW_FUNC, "listdir(file, folder) 처럼 '파일만' 을 뜻하는 표시말"},
+    {"dir",      LW_FUNC, "listdir(dir, folder) 처럼 '폴더만' 을 뜻하는 표시말"}
 };
 
 #define LUMI_WORD_COUNT (sizeof(LUMI_WORDS) / sizeof(LUMI_WORDS[0]))
