@@ -3645,15 +3645,17 @@ static Value task_start(Interp *in, Value fn, Value *args, size_t nargs, int lin
 static Value task_wait(TaskObj *t, int line)
 {
     if (!t->joined) {
+        /* 손잡이를 **자물쇠를 쥔 채로** 먼저 챙깁니다.  plat_thread_join 이 손잡이를
+         * 놓아 주므로(free), 놓은 뒤에 지우면 그 사이에 다른 쪽이 같은 손잡이로 또
+         * join 해서 두 번 놓게 됩니다 — 리눅스에서 'double free' 로 죽었습니다. */
+        void *th = t->thread;
+        t->thread = NULL;
         /* 부른 쪽은 큰 자물쇠를 쥔 상태입니다. 그 상태로 기다리면 새 실은
          * 첫 줄도 못 실행하므로, 기다리는 동안만 양보했다가 다시 잡습니다. */
-        g_execution_locked = false;
-        plat_gil_unlock();
-        plat_thread_join(t->thread);
-        plat_gil_lock();
-        g_execution_locked = true;
+        GIL_RELEASE();
+        plat_thread_join(th);
+        GIL_ACQUIRE();
         t->joined = true;
-        t->thread = NULL;
     }
     if (t->failed)
         lumi_error_kind(line, t->kind[0] ? t->kind : "Error", "%s",

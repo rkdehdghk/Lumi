@@ -191,12 +191,15 @@ static void obj_free(Obj *o)
         TaskObj *t = (TaskObj *)o;
         /* 놓기 전에 끝까지 기다립니다. 실행 중인 실이 이 일감의 값들을
          * 계속 들고 있기 때문입니다. */
-        if (t->thread && !t->joined) {
+        /* task_wait 과 같은 까닭으로 손잡이를 먼저 챙기고 지웁니다 (두 번 join 금지) */
+        void *th = t->thread;
+        t->thread = NULL;
+        if (th && !t->joined) {
             /* 실행 중인 일감이 큰 자물쇠를 기다릴 수 있습니다. 그 상태로
              * join 하면 서로 기다리므로, 정리하는 잠깐만 양보합니다. */
             bool had_gil = lumi_gil_is_held();
             if (had_gil) plat_gil_unlock();
-            plat_thread_join(t->thread);
+            plat_thread_join(th);
             if (had_gil) plat_gil_lock();
         }
         release(t->fn);
