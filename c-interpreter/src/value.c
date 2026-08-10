@@ -665,9 +665,28 @@ static void gc_visit_val(Value v)
     }
 }
 
+/* 이번 바퀴 번호.  한 바퀴 안에서 같은 환경을 두 번 훑지 않으려고 씁니다. */
+static unsigned g_gc_pass = 0;
+
+/* 이 환경을 이번 바퀴에 처음 보는가 (보는 것으로 표시하고 참/거짓을 돌려줍니다) */
+static bool gc_first_look(Env *e)
+{
+    if (e->gc_seen == g_gc_pass) return false;
+    e->gc_seen = g_gc_pass;
+    return true;
+}
+
+/* 환경에 든 값들의 '안에서 온 참조'를 하나씩 뺍니다.
+ *
+ * **환경마다 딱 한 번만 빼야 합니다.**  환경은 여럿이 함께 볼 수 있어서 —
+ * 클래스의 메서드 넷은 같은 closure 하나를 봅니다 — 표시 없이 부르면 같은 값을
+ * 넷 번 빼게 됩니다.  게다가 parent 를 따라 올라가므로 프로그램 안 모든 메서드가
+ * 전역을 한 번씩 더 빼서, 멀쩡히 쓰이는 값이 쓰레기로 보였습니다.  그것이
+ * 클래스 상속을 쓴 코드에서 gc() 가 살아 있는 값을 놓아 버리던 까닭입니다
+ * (main 부터 있던 버그입니다 — docs/Lumi_Changes.md 참고). */
 static void gc_visit_env(Env *e)
 {
-    if (!e) return;
+    if (!e || !gc_first_look(e)) return;
     for (size_t i = 0; i < e->len; i++) {
         gc_visit_val(e->slots[i].val);
     }
@@ -729,9 +748,10 @@ static void gc_traverse_children(Obj *o)
 }
 
 static void gc_restore_reachable(Obj *o);
+/* 되살리는 쪽도 환경마다 한 번이면 됩니다 (한 번 되살리면 그 안은 다 살아납니다) */
 static void gc_restore_env(Env *e)
 {
-    if (!e) return;
+    if (!e || !gc_first_look(e)) return;
     for (size_t i = 0; i < e->len; i++) {
         Value v = e->slots[i].val;
         if (v.kind >= V_STR && v.as.o && v.as.o->gc_tracked) gc_restore_reachable(v.as.o);
@@ -904,10 +924,14 @@ size_t gc_collect(Interp *in)
         curr->gc_visited = false;
     }
 
+    /* 빼는 바퀴 — 환경마다 한 번씩만 (gc_visit_env 의 주석을 보세요) */
+    g_gc_pass++;
     for (Obj *curr = g_gc_head; curr; curr = curr->gc_next) {
         gc_traverse_children(curr);
     }
 
+    /* 되살리는 바퀴 — 앞 바퀴의 표시와 섞이지 않게 번호를 새로 매깁니다 */
+    g_gc_pass++;
     gc_restore_interp(in);
     for (Interp *o = g_interps; o; o = o->next_interp) {
         if (o != in) gc_restore_interp(o);

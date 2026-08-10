@@ -225,6 +225,11 @@ struct Env {
     Env *parent;                                 /* 강한 참조 */
     struct EnvSlot { char *name; Value val; const char *type; } *slots;
     size_t len, cap;
+    /* 순환 수집기가 '이번 바퀴에 이 자리를 이미 훑었나'를 적어 둡니다.
+     * 하나의 환경을 여러 값이 함께 쓸 수 있기 때문입니다 — 클래스의 메서드 넷은
+     * 같은 closure 하나를 봅니다.  표시가 없으면 그 환경에 든 값을 **넷 번** 빼서
+     * 멀쩡히 쓰이는 값이 쓰레기로 보입니다 (value.c 의 gc_visit_env 참고). */
+    unsigned gc_seen;
 };
 Env  *env_new(Env *parent);
 Env  *env_retain(Env *e);

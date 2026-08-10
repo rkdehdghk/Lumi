@@ -36,6 +36,32 @@ test "gc 는 for 한 바퀴의 이름도 건드리지 않는다":
         push(seen, one[0])
     assertsame([1, 2, 3], seen)
 
+test "메서드를 여럿 둔 클래스를 gc 가 부수지 않는다":
+    // 한 자리(scope)에서 만든 메서드들은 **같은 closure 하나**를 함께 봅니다.
+    // 수집기가 그 자리를 메서드마다 한 번씩 훑으면 안에 든 값을 여러 번 빼서,
+    // 멀쩡히 쓰이는 클래스가 쓰레기로 보였습니다 — 그러면 gc() 가 메서드를
+    // 놓아 버리고, 다음 gc() 가 이미 놓인 자리를 밟았습니다 (heap-use-after-free).
+    // 상속까지 있으면 세는 횟수가 더 어긋납니다.
+    class Animal:
+        func init(name):
+            this.name = name
+        func sound():
+            return "..."
+        func text():
+            return this.name + "(" + this.sound() + ")"
+
+    class Dog from Animal:
+        func sound():
+            return "멍"
+
+    val d = Dog("바둑이")
+    gc()
+    assertsame("멍", d.sound())
+    assertsame("바둑이(멍)", str(d))
+    assert(isa(d, Animal), "Dog 는 Animal 이기도 합니다")
+    gc()
+    assertsame("멍", Dog("두번째").sound())
+
 test "서로 붙든 값은 치워진다":
     gc()                            // 앞선 시험이 남긴 것부터 비웁니다
     makecycle()
