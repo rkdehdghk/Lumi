@@ -67,6 +67,12 @@ pushd dap
 popd
 echo   recorded _dap
 
+REM The language server golden: a canned LSP conversation replayed into "lumi lsp".
+pushd lsp
+"%~dp0..\c-interpreter\bin\lumi.exe" lsp < session.txt > "%~dp0expected\_lsp.txt" 2>&1
+popd
+echo   recorded _lsp
+
 echo.
 echo Recorded !MADE! golden files. ^(!SKIP! skipped^)
 popd

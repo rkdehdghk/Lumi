@@ -175,6 +175,29 @@ if exist expected\_dap.txt (
   echo [!] expected\_dap.txt missing - run record.bat
 )
 
+REM The language server. Same idea as the debugger: a canned LSP conversation is
+REM replayed into "lumi lsp" and the answers are compared byte for byte. It covers
+REM go-to-definition, find-references and rename (including the two cases rename
+REM must refuse). Line and column numbers are baked in, so if lsp\prog.lumi moves
+REM a line, rerun lsp\make_session.py and record.bat.
+echo.
+echo Language server:
+pushd lsp
+"%~dp0..\c-interpreter\bin\lumi.exe" lsp < session.txt > "%~dp0actual\_lsp.txt" 2>&1
+popd
+if exist expected\_lsp.txt (
+  fc /b expected\_lsp.txt actual\_lsp.txt >nul 2>&1
+  if errorlevel 1 (
+    set /a FAIL+=1
+    echo [FAIL] lumi lsp - the conversation differs from the golden file
+    fc expected\_lsp.txt actual\_lsp.txt
+  ) else (
+    echo   lsp session as expected
+  )
+) else (
+  echo [!] expected\_lsp.txt missing - run record.bat
+)
+
 REM A .lumi file saved with CRLF must parse exactly like the LF one. The lexer
 REM used to see a blank line only as a bare newline, so on CRLF a blank line inside
 REM a block read as column 0 and closed the whole block - libraries\sqlite.lumi
@@ -201,6 +224,15 @@ ping -n 2 127.0.0.1 > nul
 "%LUMI%" http\client.lumi > actual\_http.txt 2>&1
 type actual\_http.txt
 findstr /c:"FAIL" actual\_http.txt >nul 2>&1
+if not errorlevel 1 set /a FAIL+=1
+
+REM Server and client in ONE program: catches the case where the server holds
+REM the big lock while waiting, which froze every other task.
+echo.
+echo HTTP server inside one program:
+"%LUMI%" http\solo.lumi > actual\_http_solo.txt 2>&1
+type actual\_http_solo.txt
+findstr /c:"FAIL" actual\_http_solo.txt >nul 2>&1
 if not errorlevel 1 set /a FAIL+=1
 
 popd

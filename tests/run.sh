@@ -9,7 +9,8 @@
 #   3. lint       examples+libraries clean, lint/bad.lumi matches its golden
 #   4. fmt        examples+libraries unchanged, fmt/messy.lumi matches its golden
 #   5. dap        a canned DAP conversation matches its golden
-#   6. http       server.lumi + client.lumi as two processes
+#   5a. lsp       a canned LSP conversation matches its golden
+#   6. http       server.lumi + client.lumi as two processes, then solo.lumi in one
 #
 # KEY = the file's path under examples/ with / turned into _ and .lumi dropped.
 #   examples/hello.lumi        -> hello
@@ -157,6 +158,24 @@ else
     echo "[!] expected/_dap.txt missing - run record.bat on Windows"
 fi
 
+# ---------------------------------------------------------- 5a. language server
+# Same idea as the debugger: a canned LSP conversation, compared byte for byte.
+# Covers go-to-definition, find-references and rename (including the refusals).
+echo
+echo "Language server:"
+( cd lsp && "$LUMI" lsp < session.txt > ../actual/_lsp.txt 2>&1 )
+if [ -f expected/_lsp.txt ]; then
+    if cmp -s expected/_lsp.txt actual/_lsp.txt; then
+        echo "  lsp session as expected"
+    else
+        FAIL=$((FAIL + 1))
+        echo "[FAIL] lumi lsp - the conversation differs from the golden file"
+        diff expected/_lsp.txt actual/_lsp.txt | head -30
+    fi
+else
+    echo "[!] expected/_lsp.txt missing - run record.bat on Windows"
+fi
+
 # ------------------------------------------------------- 5b. CRLF source file
 # A .lumi saved with CRLF must parse exactly like the LF one. The lexer used to
 # see a blank line only as a bare newline, so on CRLF a blank line inside a block
@@ -189,6 +208,14 @@ else
     if grep -q "FAIL" actual/_http.txt; then FAIL=$((FAIL + 1)); fi
     kill "$server_pid" 2>/dev/null
     wait "$server_pid" 2>/dev/null
+
+    # Server and client in ONE program.  Catches the case where the server holds
+    # the big lock while waiting, which used to freeze every other task.
+    echo
+    echo "HTTP server inside one program:"
+    "$LUMI" http/solo.lumi > actual/_http_solo.txt 2>&1
+    cat actual/_http_solo.txt
+    if grep -q "FAIL" actual/_http_solo.txt; then FAIL=$((FAIL + 1)); fi
 fi
 
 [ "$FAIL" -gt 0 ] && exit 1
