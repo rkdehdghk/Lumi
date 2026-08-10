@@ -1,0 +1,85 @@
+// 재귀 깊이 — 약속은 하나입니다.
+//
+//   너무 깊이 들어가면 **잡을 수 있는 오류**가 난다. 프로세스는 죽지 않는다.
+//
+// 예전에는 470 겹에서 아무 말 없이 죽었습니다 (윈도우 0xC00000FD, 스택 넘침).
+// 한도(LUMI_MAX_DEPTH)는 2000 이었지만 C 스택이 먼저 터져 한 번도 못 걸렸습니다.
+//
+// 이 시험이 **깊이의 숫자를 못 박지 않는 까닭**: 한 겹이 쓰는 C 스택은 컴파일러마다
+// 다릅니다 (MSVC 로 잰 값과 gcc/clang 이 다릅니다). 그래서 "몇 겹까지 되나"가 아니라
+// **"깊이 들어가면 죽지 않고 오류가 나는가"** 를 봅니다 — 그게 지켜야 할 약속입니다.
+// 모양마다 스택을 다르게 먹으므로 네 가지를 다 봅니다.
+// 자세한 것은 docs/Lumi_Changes.md 의 '재귀 깊이' 항목에 있습니다.
+
+val DEEP = 50000            // 한도보다 한참 깊게 — 반드시 걸려야 합니다
+val SHALLOW = 300           // 이 정도는 어느 판에서든 넉넉히 들어가야 합니다
+
+
+func plain(n):
+    if n == 0:
+        return 0
+    return 1 + plain(n - 1)
+
+func with_try(n):
+    try:
+        if n == 0:
+            return 0
+        return 1 + with_try(n - 1)
+    catch e:
+        return -1                       // 한도에 걸리면 여기로 옵니다
+
+func via_builtin(n):
+    if n == 0:
+        return 0
+    return 1 + each(func x: via_builtin(n - 1), [1])[0]
+
+class Counter:
+    func down(n):
+        if n == 0:
+            return 0
+        return 1 + this.down(n - 1)
+
+
+test "얕은 재귀는 그냥 됩니다":
+    assertsame(SHALLOW, plain(SHALLOW))
+    assertsame(SHALLOW, Counter().down(SHALLOW))
+
+test "깊은 재귀는 죽지 않고 오류를 냅니다":
+    val 잡았나 = false
+    try:
+        plain(DEEP)
+    catch e:
+        잡았나 = true
+    assert(잡았나, "너무 깊은 재귀가 잡히는 오류를 내지 않았습니다")
+
+test "try 를 품은 재귀도 죽지 않습니다":
+    // 제 catch 가 한도 오류를 삼키고 -1 을 돌려주면, 그 위 겹들이 1 씩 더하며
+    // 되돌아옵니다.  그래서 오류가 아니라 '한도쯤 되는 수'가 나옵니다.
+    // DEEP 보다 작다는 것이 곧 '끝까지 못 가고 한도에 걸렸다'는 뜻입니다.
+    val got = with_try(DEEP)
+    assert(got < DEEP, "try 를 품은 깊은 재귀가 한도에 안 걸렸습니다")
+
+test "내장 함수를 거치는 재귀도 죽지 않습니다":
+    val 잡았나 = false
+    try:
+        via_builtin(DEEP)
+    catch e:
+        잡았나 = true
+    assert(잡았나, "each 를 거치는 깊은 재귀가 잡히는 오류를 내지 않았습니다")
+
+test "메서드 재귀도 죽지 않습니다":
+    val 잡았나 = false
+    try:
+        Counter().down(DEEP)
+    catch e:
+        잡았나 = true
+    assert(잡았나, "메서드의 깊은 재귀가 잡히는 오류를 내지 않았습니다")
+
+test "한도에 걸린 뒤에도 멀쩡히 이어집니다":
+    // 예전에는 한도에 걸릴 때 깊이를 0 으로 되돌려서, 그 오류를 잡고 나면
+    // 이미 쌓인 스택 위로 또 파고들어 진짜로 터졌습니다.
+    try:
+        plain(DEEP)
+    catch e:
+        print("", keep(""))
+    assertsame(SHALLOW, plain(SHALLOW))
