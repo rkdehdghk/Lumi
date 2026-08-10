@@ -267,4 +267,4 @@ runcode("dir")    ->  shellcode("dir")
 
 ## 그전 — 번호 없던 때
 
-`docs/Lumi_Practical_Features_Roadmap.md` 와 `Lumi 사용설명서.md` 맨 위의 갱신 기록을 보세요. 그때는 바뀐 것을 한곳에 모아 적지 않았습니다 — 이 파일을 만든 까닭이 그것입니다.
+`Lumi 사용설명서.md` 맨 위의 갱신 기록과 `git log` 를 보세요. 그때는 바뀐 것을 한곳에 모아 적지 않았습니다 — 이 파일을 만든 까닭이 그것입니다.

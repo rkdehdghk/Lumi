@@ -3513,7 +3513,7 @@ try  catch  safe  always  error  test
 
 ## 17. 앞으로 만들 것 (Roadmap)
 
-> 자세한 계획과 순서는 `docs/Lumi_Practical_Features_Roadmap.md` 에 있습니다. 여기에는 문법·내장 함수에 관한 것만 적습니다.
+> 여기에는 문법·내장 함수에 관한 것만 적습니다. 무엇이 실제로 바뀌었는지는 [`docs/Lumi_Changes.md`](docs/Lumi_Changes.md) 를 보세요.
 
 - 문자열 함수 더 늘리기 — `find`, `startswith` 등 (`upper`/`lower`/`strip`/`split`/`join`/`replace`/`format`/`sort`/`encode` 는 이미 있습니다)
 - 폴더 안 훑어보기 (`listdir`) 와 경로 다루기 (이어 붙이기, 이름만 떼기)
