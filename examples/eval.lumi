@@ -25,22 +25,22 @@ print(eval("twice(21)"))            // 42      내가 만든 함수도 부릅니
 
 print("")
 print("=== 함수 안의 지역 변수도 보입니다 ===")
-func 숨겨보기():
-    val 숨은값 = 7
-    return eval("숨은값 * 3")
+func peek():
+    val secret = 7
+    return eval("secret * 3")
 
-print(숨겨보기())                    // 21
+print(peek())                    // 21
 
 print("")
 print("=== 식을 만들어서 실행하기 ===")
-val 코드 = "x" + " + " + "5"
-print(코드)                          // x + 5
-print(eval(코드))                    // 15
+val code = "x" + " + " + "5"
+print(code)                          // x + 5
+print(eval(code))                    // 15
 
 // 여러 식을 리스트에 담아 두었다가 하나씩 계산합니다
-val 식들 = ["1 + 1", "3 * 3", "len([1,2,3])", "sort([3,1,2])"]
-for 식 in 식들:
-    print(식, "=", eval(식))
+val exprs = ["1 + 1", "3 * 3", "len([1,2,3])", "sort([3,1,2])"]
+for expr in exprs:
+    print(expr, "=", eval(expr))
 // 1 + 1 = 2
 // 3 * 3 = 9
 // len([1,2,3]) = 3

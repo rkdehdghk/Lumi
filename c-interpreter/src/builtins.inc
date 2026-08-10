@@ -1793,11 +1793,9 @@ static Value eval_time_builtin(Interp *in, const char *name, Node *n, Env *env, 
         double sec = v.kind == V_INT ? (double)v.as.i : v.as.f;
         if (sec < 0) lumi_error(line, "sleep time cannot be negative");
         /* 잠든 동안에는 다른 일감이 Lumi 코드를 실행할 수 있습니다. */
-        g_execution_locked = false;
-        plat_gil_unlock();
+        GIL_RELEASE();
         lumi_time_sleep(sec);
-        plat_gil_lock();
-        g_execution_locked = true;
+        GIL_ACQUIRE();
         return NONE_VAL;
     }
 
@@ -2769,57 +2767,23 @@ static Value eval_ffi_builtin(Interp *in, const char *name, Node *n, Env *env, i
  * 함수 부르기 (내장 함수 갈래 나누기)
  * ============================================================ */
 
-static Value eval_call(Interp *in, Node *n, Env *env)
+/* eval_call 에서 떼어 낸 갈래들 --------------------------------------------
+ * 왜 떼었나: 한 함수의 스택 자리는 **모든 갈래의 지역 변수를 합친 크기**로 잡힙니다.
+ * 갈래 40 개가 한 함수에 있으니 8,536 바이트였고, eval_call 은 함수를 부를 때마다
+ * 거치는 자리라 재귀 한 겹마다 그만큼이 쌓였습니다 (그래서 460 겹에서 죽었습니다).
+ * 부르는 차례는 그대로입니다 — 예전에 갈래가 적혀 있던 순서대로 셋을 차례로 봅니다.
+ *
+ * 내 담당이 아니면 NOT_MINE 을 돌려줍니다.  V_NONE 은 값을 세지 않으므로
+ * (value.c 의 retain/release 는 V_STR 부터만 봅니다) 이 표시는 새어 나가도 안전하고,
+ * 진짜 none 과 헷갈리지도 않습니다 — 진짜 none 은 as.o 가 0 입니다. */
+static Obj g_not_mine;
+#define NOT_MINE ((Value){V_NONE, {.o = &g_not_mine}})
+static bool not_mine(Value v) { return v.kind == V_NONE && v.as.o == &g_not_mine; }
+
+/* 글자·목록 다루기 (print / 형변환 / 찾기 / 자르기 / 정렬 / 바이트 ...) */
+static LUMI_NOINLINE Value eval_text_builtins(Interp *in, const char *name, Node *n,
+                                      Env *env, int line)
 {
-    const char *name = n->v.call.name;
-    int line = n->line;
-
-    /* 내장 함수 이름이 먼저입니다 — 같은 이름으로 만든 내 함수는 불리지 않습니다.
-     * (메서드는 여기를 거치지 않으니 class 안의 func add(...) 는 그대로 동작합니다) */
-    if (name_in(name, TIME_NAMES)) {
-        return eval_time_builtin(in, name, n, env, line);
-    }
-    if (name_in(name, UTIL_NAMES) || name_in(name, ASSERT_NAMES)) {
-        return eval_util_builtin(in, name, n, env, line);
-    }
-    if (name_in(name, VEC_MATH_NAMES)) {
-        return eval_vec_math_builtin(in, name, n, env, line);
-    }
-
-    /* --- start(함수, 값...) / wait(일감) --- */
-    if (name_in(name, TASK_NAMES)) {
-        if (strcmp(name, "start") == 0) {
-            if (NARG < 1)
-                lumi_error(line, "start needs a function first, like start(work, value)");
-            if (ARGS.items[0]->kind == N_KWARG)
-                lumi_error(line, "start's first value must be a function, not a named argument");
-            Value fn = eval(in, ARGS.items[0], env);
-            size_t na = NARG - 1;
-            Value *args = na ? (Value *)xmalloc(na * sizeof(Value)) : NULL;
-            for (size_t i = 0; i < na; i++) {
-                if (ARGS.items[i + 1]->kind == N_KWARG) {
-                    for (size_t k = 0; k < i; k++) release(args[k]);
-                    free(args); release(fn);
-                    lumi_error(line, "start passes values by order, so 'name = value' cannot go here");
-                }
-                args[i] = eval(in, ARGS.items[i + 1], env);
-            }
-            return task_start(in, fn, args, na, line); /* fn/args 소유권 이동 */
-        }
-        if (NARG != 1) lumi_error(line, "wait needs exactly one task made by start()");
-        Value v = ARG(0);
-        if (v.kind != V_TASK) {
-            char *got = S(in, v);
-            release(v);
-            lumi_error(line, "wait needs a task made by start() but got %s", got);
-        }
-        Value out = task_wait(AS_TASK(v), line);
-        release(v);
-        return out;
-    }
-
-
-
     /* --- print([값...] [, keep([끝말])]) --- */
     if (strcmp(name, "print") == 0) {
         size_t nargs = NARG;
@@ -3133,6 +3097,13 @@ static Value eval_call(Interp *in, Node *n, Env *env)
         return out;
     }
 
+    return NOT_MINE;
+}
+
+/* 무늬 찾기 · 바깥 세상 (정규식 / FFI / 웹서버 / 셸 / 요약값 / 경로 / 파일) */
+static LUMI_NOINLINE Value eval_world_builtins(Interp *in, const char *name, Node *n,
+                                       Env *env, int line)
+{
     /* --- 무늬 찾기 (정규표현식) ---
      *   ismatch(무늬, 글자)          글자 '전체'가 무늬와 같은가
      *   hasmatch(무늬, 글자)         어딘가에 무늬가 있는가
@@ -3355,8 +3326,12 @@ static Value eval_call(Interp *in, Node *n, Env *env)
 
         long long served = 0;
         while (want <= 0 || served < want) {
+            /* 손님을 기다리는 동안에는 자물쇠를 놓습니다 — 안 그러면 서버가 도는 내내
+             * 인터프리터 전체가 멈춰 다른 일감이 한 줄도 못 돕니다.
+             * 여기서는 Lumi 값을 만지지 않습니다 (버퍼는 그냥 malloc 입니다). */
+            GIL_RELEASE();
             int c = plat_accept(server);
-            if (c < 0) break;
+            if (c < 0) { GIL_ACQUIRE(); break; }
 
             /* 머리말 끝(빈 줄)까지 읽고, Content-Length 만큼 몸통을 더 읽습니다 */
             size_t cap = 8192, len = 0;
@@ -3374,7 +3349,7 @@ static Value eval_call(Interp *in, Node *n, Env *env)
                     req = (char *)xrealloc(req, cap);
                 }
             }
-            if (head_end == 0) { free(req); plat_closesock(c); continue; }
+            if (head_end == 0) { free(req); plat_closesock(c); GIL_ACQUIRE(); continue; }
 
             /* Content-Length 를 찾아 몸통을 마저 받습니다 */
             size_t want_body = 0;
@@ -3392,6 +3367,8 @@ static Value eval_call(Interp *in, Node *n, Env *env)
                 len += (size_t)got;
                 req[len] = 0;
             }
+            /* 여기서부터는 Lumi 값을 만듭니다 — 다시 자물쇠를 잡습니다. */
+            GIL_ACQUIRE();
 
             /* 첫 줄: 방법 길 버전 */
             char *sp1 = strchr(req, ' ');
@@ -3402,10 +3379,10 @@ static Value eval_call(Interp *in, Node *n, Env *env)
                 char *path = sp1 + 1;
                 char *qmark = strchr(path, '?');
                 if (qmark) *qmark = 0;
-                dict_set(rq, str_value("방법"), str_value(req));
-                /* 길은 %EC%95%88 같은 적기를 풀어서 줍니다 */
+                dict_set(rq, str_value("method"), str_value(req));
+                /* path 는 %EC%95%88 같은 적기를 풀어서 줍니다 */
                 char *dec = url_undo(path, strlen(path), false);
-                dict_set(rq, str_value("길"), str_value(dec));
+                dict_set(rq, str_value("path"), str_value(dec));
                 free(dec);
                 /* 물음표 뒤는 이름=값 짝으로 갈라서 딕셔너리로 줍니다.
                  * 가르고 나서 풀어야 이름이나 값에 든 & = 가 안 헷갈립니다. */
@@ -3425,13 +3402,13 @@ static Value eval_call(Interp *in, Node *n, Env *env)
                         qp = amp + 1;
                     }
                 }
-                dict_set(rq, str_value("물음"), obj_val(qd));
+                dict_set(rq, str_value("query"), obj_val(qd));
                 *sp1 = ' '; *sp2 = ' ';
                 if (qmark) *qmark = '?';
             } else {
-                dict_set(rq, str_value("방법"), str_value("GET"));
-                dict_set(rq, str_value("길"), str_value("/"));
-                dict_set(rq, str_value("물음"), obj_val(dict_new()));
+                dict_set(rq, str_value("method"), str_value("GET"));
+                dict_set(rq, str_value("path"), str_value("/"));
+                dict_set(rq, str_value("query"), obj_val(dict_new()));
             }
 
             /* 머리말들 (이름은 소문자로 맞춰 담습니다) */
@@ -3458,12 +3435,12 @@ static Value eval_call(Interp *in, Node *n, Env *env)
                 }
                 linep = eol + 2;
             }
-            dict_set(rq, str_value("머리말"), obj_val(hd));
+            dict_set(rq, str_value("headers"), obj_val(hd));
 
             size_t have_body = len > head_end ? len - head_end : 0;
             if (have_body > want_body && want_body) have_body = want_body;
             Value bodyv = obj_val(str_from_utf8_n(req + head_end, have_body));
-            dict_set(rq, str_value("본문"), bodyv);
+            dict_set(rq, str_value("body"), bodyv);
             free(req);
 
             /* 처리 함수를 부릅니다.  터져도 서버는 살아 있어야 합니다. */
@@ -3480,16 +3457,15 @@ static Value eval_call(Interp *in, Node *n, Env *env)
                 Value res = call_value(in, handler, &arg, 1, "handler", line);
                 in->top_handler = h.prev;
                 if (res.kind == V_DICT) {
-                    Value *cv = dict_find(AS_DICT(res), str_value("코드"));
-                    Value ck = str_value("코드");
-                    cv = dict_find(AS_DICT(res), ck);
+                    Value ck = str_value("code");
+                    Value *cv = dict_find(AS_DICT(res), ck);
                     release(ck);
                     code = cv && cv->kind == V_INT ? (long)cv->as.i : 200;
-                    Value bk = str_value("본문");
+                    Value bk = str_value("body");
                     Value *bv = dict_find(AS_DICT(res), bk);
                     release(bk);
                     body_out = bv ? S(in, *bv) : xstrdup("");
-                    Value hk = str_value("머리말");
+                    Value hk = str_value("headers");
                     Value *hv = dict_find(AS_DICT(res), hk);
                     release(hk);
                     if (hv && hv->kind == V_DICT) {
@@ -3527,12 +3503,16 @@ static Value eval_call(Interp *in, Node *n, Env *env)
                                   strstr(extra_h, "Content-Type") || strstr(extra_h, "content-type")
                                       ? "" : "Content-Type: text/plain; charset=utf-8\r\n",
                                   strlen(body_out), extra_h);
+            /* 답을 보내는 동안에도 놓습니다 — 느린 손님 하나가 인터프리터 전체를
+             * 붙들지 않게. head/body_out 은 그냥 malloc 한 글자라 안전합니다. */
+            GIL_RELEASE();
             plat_send(c, head, strlen(head));
             plat_send(c, body_out, strlen(body_out));
             free(head);
             free(body_out);
             free(extra.p);
             plat_closesock(c);
+            GIL_ACQUIRE();
             served++;
         }
         plat_closesock(server);
@@ -3557,11 +3537,9 @@ static Value eval_call(Interp *in, Node *n, Env *env)
 
         int rc = -1;
         /* 셸 프로그램을 기다리는 시간도 다른 일감에게 넘깁니다. */
-        g_execution_locked = false;
-        plat_gil_unlock();
+        GIL_RELEASE();
         char *out = plat_run(cmd, &rc);
-        plat_gil_lock();
-        g_execution_locked = true;
+        GIL_ACQUIRE();
         if (!out) {
             char *bad = xstrdup(cmd);
             free(cmd);
@@ -3986,6 +3964,13 @@ static Value eval_call(Interp *in, Node *n, Env *env)
         return out;
     }
 
+    return NOT_MINE;
+}
+
+/* 값을 들여다보고 고치기 (type / len / keys / push / json / gc / isa / eval) */
+static LUMI_NOINLINE Value eval_misc_builtins(Interp *in, const char *name, Node *n,
+                                      Env *env, int line)
+{
     /* --- type(값) --- */
     if (strcmp(name, "type") == 0) {
         if (NARG != 1) lumi_error(line, "type needs exactly one value");
@@ -4189,6 +4174,67 @@ static Value eval_call(Interp *in, Node *n, Env *env)
         free(prog.items);
         return eval(in, expr, env);   /* 부르는 자리의 변수를 그대로 씁니다 */
     }
+
+    return NOT_MINE;
+}
+
+static Value eval_call(Interp *in, Node *n, Env *env)
+{
+    const char *name = n->v.call.name;
+    int line = n->line;
+
+    /* 내장 함수 이름이 먼저입니다 — 같은 이름으로 만든 내 함수는 불리지 않습니다.
+     * (메서드는 여기를 거치지 않으니 class 안의 func add(...) 는 그대로 동작합니다) */
+    if (name_in(name, TIME_NAMES)) {
+        return eval_time_builtin(in, name, n, env, line);
+    }
+    if (name_in(name, UTIL_NAMES) || name_in(name, ASSERT_NAMES)) {
+        return eval_util_builtin(in, name, n, env, line);
+    }
+    if (name_in(name, VEC_MATH_NAMES)) {
+        return eval_vec_math_builtin(in, name, n, env, line);
+    }
+
+    /* --- start(함수, 값...) / wait(일감) --- */
+    if (name_in(name, TASK_NAMES)) {
+        if (strcmp(name, "start") == 0) {
+            if (NARG < 1)
+                lumi_error(line, "start needs a function first, like start(work, value)");
+            if (ARGS.items[0]->kind == N_KWARG)
+                lumi_error(line, "start's first value must be a function, not a named argument");
+            Value fn = eval(in, ARGS.items[0], env);
+            size_t na = NARG - 1;
+            Value *args = na ? (Value *)xmalloc(na * sizeof(Value)) : NULL;
+            for (size_t i = 0; i < na; i++) {
+                if (ARGS.items[i + 1]->kind == N_KWARG) {
+                    for (size_t k = 0; k < i; k++) release(args[k]);
+                    free(args); release(fn);
+                    lumi_error(line, "start passes values by order, so 'name = value' cannot go here");
+                }
+                args[i] = eval(in, ARGS.items[i + 1], env);
+            }
+            return task_start(in, fn, args, na, line); /* fn/args 소유권 이동 */
+        }
+        if (NARG != 1) lumi_error(line, "wait needs exactly one task made by start()");
+        Value v = ARG(0);
+        if (v.kind != V_TASK) {
+            char *got = S(in, v);
+            release(v);
+            lumi_error(line, "wait needs a task made by start() but got %s", got);
+        }
+        Value out = task_wait(AS_TASK(v), line);
+        release(v);
+        return out;
+    }
+
+
+
+    { Value r = eval_text_builtins(in, name, n, env, line);
+      if (!not_mine(r)) return r; }
+    { Value r = eval_world_builtins(in, name, n, env, line);
+      if (!not_mine(r)) return r; }
+    { Value r = eval_misc_builtins(in, name, n, env, line);
+      if (!not_mine(r)) return r; }
 
     /* --- 사용자가 만든 함수 / 클래스 --- */
     Value callee = env_get(env, name, line);

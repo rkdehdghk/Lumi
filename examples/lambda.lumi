@@ -7,60 +7,60 @@
 // 만들어진 것은 '함수 값' 이라서 변수에 담아 두었다가 부릅니다.
 
 print("=== 만들어서 바로 쓰기 ===")
-val 두배 = func x: x * 2
-print(두배(5))                       // 10
+val double = func x: x * 2
+print(double(5))                       // 10
 
-val 더하기 = func a, b: a + b
-print(더하기(3, 4))                   // 7
+val plus = func a, b: a + b
+print(plus(3, 4))                   // 7
 
-val 인사 = func: "안녕"               // 인자가 없어도 됩니다
-print(인사())                         // 안녕
+val greet = func: "안녕"               // 인자가 없어도 됩니다
+print(greet())                         // 안녕
 
 print("")
 print("=== 바깥 변수를 기억합니다 (클로저) ===")
 val n = 10
-val n더하기 = func x: x + n
-print(n더하기(1))                     // 11
+val plus_n = func x: x + n
+print(plus_n(1))                     // 11
 
 print("")
 print("=== 다른 함수에 넘기기 ===")
-func 적용(f, v):
+func apply(f, v):
     return f(v)
 
-print(적용(func x: x * x, 7))         // 49
-print(적용(func s: upper(s), "abc"))  // ABC
+print(apply(func x: x * x, 7))         // 49
+print(apply(func s: upper(s), "abc"))  // ABC
 
 print("")
 print("=== 리스트에 담아 두기 ===")
-val 계산들 = [func x: x + 1, func x: x - 1, func x: x * x]
-for 하나 in 계산들:
-    val f = 하나
+val ops = [func x: x + 1, func x: x - 1, func x: x * x]
+for one in ops:
+    val f = one
     print(f(6))
 // 7
 // 5
 // 36
 
-// 담아서 부르는 이유: 목록[0](6) 처럼 바로 이어 부르는 것은 아직 안 됩니다.
-val 첫째 = 계산들[0]
-print(첫째(100))                      // 101
+// ops[0](6) 처럼 바로 이어 불러도 되고, 이렇게 담아 두었다가 불러도 됩니다.
+val first = ops[0]
+print(first(100))                      // 101
 
 print("")
 print("=== 이름 있는 함수와 나눠 쓰기 ===")
 // 식 하나로 끝나면 한 줄 함수, 문장이나 여러 줄이 필요하면 이름 있는 함수.
-val 짝수인가 = func x: x % 2 == 0
-print(짝수인가(4), 짝수인가(7))        // true false
+val is_even = func x: x % 2 == 0
+print(is_even(4), is_even(7))        // true false
 
-func 세기(목록):                       // 여러 줄이라 이름 있는 함수로
-    val 수 = 0
-    for v in 목록:
-        if 짝수인가(v):
-            수 = 수 + 1
-    return 수
+func count(items):                       // 여러 줄이라 이름 있는 함수로
+    val n = 0
+    for v in items:
+        if is_even(v):
+            n = n + 1
+    return n
 
-print(세기([1, 2, 3, 4, 5, 6]))        // 3
+print(count([1, 2, 3, 4, 5, 6]))        // 3
 
 print("")
 print("=== 알아 둘 점 ===")
-print(두배)                            // <function nameless>
+print(double)                            // <function nameless>
 // - 이름이 없으니 자기 자신을 부르는 재귀는 안 됩니다 (그때는 func 이름(...)).
 // - 문장 자리에 혼자 적으면(func x: x + 1) 값을 받을 곳이 없어 오류입니다.

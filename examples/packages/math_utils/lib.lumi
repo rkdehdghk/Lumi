@@ -1,5 +1,5 @@
-func 더하기(a, b):
+func plus(a, b):
     return a + b
 
-func 곱하기(a, b):
+func times(a, b):
     return a * b

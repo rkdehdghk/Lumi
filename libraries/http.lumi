@@ -8,11 +8,11 @@
 //   http.serve(포트, 처리함수)          -> 작은 웹 서버 열기
 //
 // 답은 이렇게 생긴 딕셔너리입니다:
-//   { "ok": true, "코드": 200, "본문": "...", "머리말": { "content-type": "..." } }
+//   { "ok": true, "code": 200, "body": "...", "headers": { "content-type": "..." } }
 //
 // 규칙 두 가지를 꼭 기억하세요:
-//   * 404 나 500 은 **오류가 아닙니다.** 서버가 제대로 답한 것이므로 "코드"로 옵니다.
-//     ok 는 코드가 200~299 일 때만 true 입니다.
+//   * 404 나 500 은 **오류가 아닙니다.** 서버가 제대로 답한 것이므로 "code" 로 옵니다.
+//     ok 는 code 가 200~299 일 때만 true 입니다.
 //   * 주소를 못 찾거나 연결이 끊기면 **NetworkError 를 냅니다.** try 로 잡으세요.
 //
 // 안쪽은 curl 을 불러서 씁니다 (윈도우 10 부터, 맥, 대부분의 리눅스에 기본으로 있습니다).
@@ -22,14 +22,14 @@
 //   bring http
 //   val 답 = http.get("https://api.github.com")
 //   if 답["ok"]:
-//       print(json.parse(답["본문"])["current_user_url"])
+//       print(json.parse(답["body"])["current_user_url"])
 
-val 시간초과 = 30          // 초. 오래 걸리는 곳이면 이 값을 고쳐 쓰세요.
+val timeout = 30          // 초. 오래 걸리는 곳이면 이 값을 고쳐 쓰세요.
 
 
 // --- 안에서만 쓰는 것들 (이름이 _ 로 시작합니다) --------------------------
 
-func _임시폴더():
+func _tempdir():
     val t = env("TEMP")
     if t != none:
         return t
@@ -40,158 +40,158 @@ func _임시폴더():
         return "/tmp"
     return "."
 
-func _임시이름(꼬리):
-    val 번호 = str(rand(1, 999999999)) + "_" + str(rand(1, 999999))
-    return pathjoin(_임시폴더(), "lumi_http_" + 번호 + "_" + 꼬리)
+func _tempname(suffix):
+    val n = str(rand(1, 999999999)) + "_" + str(rand(1, 999999))
+    return pathjoin(_tempdir(), "lumi_http_" + n + "_" + suffix)
 
 // curl 설정 파일 안에서 따옴표와 역슬래시는 \ 로 막아 줍니다
-func _적기(값):
-    return replace("\"", "\\\"", replace("\\", "\\\\", 값))
+func _quote(s):
+    return replace("\"", "\\\"", replace("\\", "\\\\", s))
 
-func _curl있나():
+func _need_curl():
     if shellcode("curl --version") != 0:
         error("NetworkError", "curl 을 찾지 못했습니다. 윈도우 10 이상, 맥, 대부분의 리눅스에는 "
                             + "기본으로 있습니다. 없다면 https://curl.se 에서 받으세요.")
     return true
 
 // 응답 머리말 파일을 딕셔너리로 (이름은 모두 소문자로 맞춥니다)
-func _머리말읽기(파일):
-    val 나온것 = {}
-    if not isfile(파일):
-        return 나온것
-    for 줄 in split("\n", read(파일)):
-        val 몫 = findgroups("^([^:\\s]+):\\s*(.*)$", 줄)
-        if 몫 != none:
-            나온것[lower(몫[0])] = replace("\r", "", 몫[1])
-    return 나온것
+func _read_headers(file):
+    val out = {}
+    if not isfile(file):
+        return out
+    for line in split("\n", read(file)):
+        val g = findgroups("^([^:\\s]+):\\s*(.*)$", line)
+        if g != none:
+            out[lower(g[0])] = replace("\r", "", g[1])
+    return out
 
 
 // --- 보내기 --------------------------------------------------------------
 
-// 방법 = "GET" / "POST" / "PUT" / "DELETE" ...
+// method = "GET" / "POST" / "PUT" / "DELETE" ...
 // 본문이 none 이면 몸통 없이 보냅니다.
-func send(방법, 본문, 주소, 머리말 = {}):
-    _curl있나()
+func send(method, body, url, headers = {}):
+    _need_curl()
 
-    val 설정파일 = _임시이름("req.conf")
-    val 본문파일 = _임시이름("body.txt")
-    val 답파일 = _임시이름("resp.bin")
-    val 머리파일 = _임시이름("head.txt")
+    val conf_file = _tempname("req.conf")
+    val body_file = _tempname("body.txt")
+    val resp_file = _tempname("resp.bin")
+    val head_file = _tempname("head.txt")
 
     // 주소도 머리말도 셸이 아니라 설정 파일로 건넵니다
-    val 줄들 = [
-        "url = \"" + _적기(주소) + "\"",
-        "request = \"" + _적기(방법) + "\"",
-        "output = \"" + _적기(답파일) + "\"",
-        "dump-header = \"" + _적기(머리파일) + "\"",
+    val lines = [
+        "url = \"" + _quote(url) + "\"",
+        "request = \"" + _quote(method) + "\"",
+        "output = \"" + _quote(resp_file) + "\"",
+        "dump-header = \"" + _quote(head_file) + "\"",
         "write-out = \"%{http_code}\"",
-        "max-time = " + str(시간초과),
+        "max-time = " + str(timeout),
         "location",              // 넘겨 주는 주소(3xx)를 따라갑니다
         "silent",
         "show-error"
     ]
-    for 이름 in keys(머리말):
-        push(줄들, "header = \"" + _적기(이름) + ": " + _적기(str(머리말[이름])) + "\"")
-    if 본문 != none:
-        write(본문, 본문파일)
-        push(줄들, "data-binary = \"@" + _적기(본문파일) + "\"")
+    for name in keys(headers):
+        push(lines, "header = \"" + _quote(name) + ": " + _quote(str(headers[name])) + "\"")
+    if body != none:
+        write(body, body_file)
+        push(lines, "data-binary = \"@" + _quote(body_file) + "\"")
 
-    write(join("\n", 줄들) + "\n", 설정파일)
+    write(join("\n", lines) + "\n", conf_file)
 
-    val 나온것 = shell("curl -K \"" + 설정파일 + "\"")
+    val out = shell("curl -K \"" + conf_file + "\"")
 
     // 마지막 줄이 상태 코드입니다. 그 앞에 있는 것은 curl 이 남긴 하소연입니다.
-    val 조각 = split("\n", 나온것)
-    val 코드글자 = strip(조각[-1])
-    val 하소연 = strip(join(" ", 조각[0:-1]))
+    val parts = split("\n", out)
+    val code_text = strip(parts[-1])
+    val complaint = strip(join(" ", parts[0:-1]))
 
-    val 본문글자 = ""
-    if isfile(답파일):
-        본문글자 = read(답파일)
-    val 답머리말 = _머리말읽기(머리파일)
+    val body_text = ""
+    if isfile(resp_file):
+        body_text = read(resp_file)
+    val resp_headers = _read_headers(head_file)
 
     // 뒷정리
-    for 하나 in [설정파일, 본문파일, 답파일, 머리파일]:
-        if isfile(하나):
-            delfile(하나)
+    for f in [conf_file, body_file, resp_file, head_file]:
+        if isfile(f):
+            delfile(f)
 
     // curl 은 연결 자체가 안 되면 000 을 줍니다 — 이건 서버의 답이 아니라 사고입니다
-    if 코드글자 == "000" or not isdigit(코드글자):
-        val 까닭 = 하소연
-        if 까닭 == "":
-            까닭 = "연결하지 못했습니다"
-        error("NetworkError", 방법 + " " + 주소 + " : " + 까닭)
+    if code_text == "000" or not isdigit(code_text):
+        val why = complaint
+        if why == "":
+            why = "연결하지 못했습니다"
+        error("NetworkError", method + " " + url + " : " + why)
 
-    val 코드 = num(코드글자)
+    val code = num(code_text)
     return {
-        "ok": 코드 >= 200 and 코드 < 300,
-        "코드": 코드,
-        "본문": 본문글자,
-        "머리말": 답머리말
+        "ok": code >= 200 and code < 300,
+        "code": code,
+        "body": body_text,
+        "headers": resp_headers
     }
 
-func get(주소, 머리말 = {}):
-    return send("GET", none, 주소, 머리말)
+func get(url, headers = {}):
+    return send("GET", none, url, headers)
 
 // 집 규칙대로 '무엇을 어디에' 차례입니다 — write(내용, 파일이름) 과 같은 모양.
-func post(본문, 주소, 머리말 = {}):
-    return send("POST", 본문, 주소, 머리말)
+func post(body, url, headers = {}):
+    return send("POST", body, url, headers)
 
-func put(본문, 주소, 머리말 = {}):
-    return send("PUT", 본문, 주소, 머리말)
+func put(body, url, headers = {}):
+    return send("PUT", body, url, headers)
 
-func delete(주소, 머리말 = {}):
-    return send("DELETE", none, 주소, 머리말)
+func delete(url, headers = {}):
+    return send("DELETE", none, url, headers)
 
 // JSON 을 주고받는 흔한 꼴 — 머리말을 알아서 붙이고 답도 풀어 줍니다
-func getjson(주소, 머리말 = {}):
-    머리말["Accept"] = "application/json"
-    val 답 = get(주소, 머리말)
-    if 답["ok"] and 답["본문"] != "":
-        답["자료"] = json.parse(답["본문"])
-    return 답
+func getjson(url, headers = {}):
+    headers["Accept"] = "application/json"
+    val res = get(url, headers)
+    if res["ok"] and res["body"] != "":
+        res["data"] = json.parse(res["body"])
+    return res
 
-func postjson(자료, 주소, 머리말 = {}):
-    머리말["Content-Type"] = "application/json"
-    머리말["Accept"] = "application/json"
-    val 답 = post(json.stringify(자료), 주소, 머리말)
-    if 답["ok"] and 답["본문"] != "":
-        답["자료"] = json.parse(답["본문"])
-    return 답
+func postjson(data, url, headers = {}):
+    headers["Content-Type"] = "application/json"
+    headers["Accept"] = "application/json"
+    val res = post(json.stringify(data), url, headers)
+    if res["ok"] and res["body"] != "":
+        res["data"] = json.parse(res["body"])
+    return res
 
 
 // --- 파일로 받기 ---------------------------------------------------------
 
 // 큰 파일도 기억 장치에 다 올리지 않고 곧장 파일로 씁니다.
-func download(주소, 파일이름):
-    _curl있나()
-    val 설정파일 = _임시이름("dl.conf")
+func download(url, filename):
+    _need_curl()
+    val conf_file = _tempname("dl.conf")
     // 받을 자리는 설정 파일이 아니라 명령줄로 넘깁니다
     // (curl 은 설정 파일을 UTF-8 로 읽지 않아 한글 경로가 깨집니다)
     write(join("\n", [
-        "url = \"" + _적기(주소) + "\"",
+        "url = \"" + _quote(url) + "\"",
         "write-out = \"%{http_code}\"",
-        "max-time = " + str(시간초과),
+        "max-time = " + str(timeout),
         "location",
         "silent",
         "show-error"
-    ]) + "\n", 설정파일)
+    ]) + "\n", conf_file)
 
-    val 나온것 = shell("curl -K \"" + 설정파일 + "\" -o \"" + 파일이름 + "\"")
-    delfile(설정파일)
+    val out = shell("curl -K \"" + conf_file + "\" -o \"" + filename + "\"")
+    delfile(conf_file)
 
-    val 조각 = split("\n", 나온것)
-    val 코드글자 = strip(조각[-1])
-    if 코드글자 == "000" or not isdigit(코드글자):
-        error("NetworkError", "받기 실패 " + 주소 + " : " + strip(join(" ", 조각[0:-1])))
-    val 코드 = num(코드글자)
-    if 코드 < 200 or 코드 >= 300:
-        if isfile(파일이름):
-            delfile(파일이름)
-        error("NetworkError", "받기 실패 " + 주소 + " : 서버가 " + str(코드) + " 를 주었습니다")
-    if not isfile(파일이름):
-        error("NetworkError", "받기 실패 " + 주소 + " : 파일이 만들어지지 않았습니다")
-    return len(encode(read(파일이름)))
+    val parts = split("\n", out)
+    val code_text = strip(parts[-1])
+    if code_text == "000" or not isdigit(code_text):
+        error("NetworkError", "받기 실패 " + url + " : " + strip(join(" ", parts[0:-1])))
+    val code = num(code_text)
+    if code < 200 or code >= 300:
+        if isfile(filename):
+            delfile(filename)
+        error("NetworkError", "받기 실패 " + url + " : 서버가 " + str(code) + " 를 주었습니다")
+    if not isfile(filename):
+        error("NetworkError", "받기 실패 " + url + " : 파일이 만들어지지 않았습니다")
+    return len(encode(read(filename)))
 
 
 // --- 작은 웹 서버 --------------------------------------------------------
@@ -199,12 +199,15 @@ func download(주소, 파일이름):
 // 처리함수는 요청 딕셔너리를 받아 답 딕셔너리를 돌려줍니다.
 //
 //   func 처리(요청):
-//       // 요청 = {"방법":"GET", "길":"/a", "물음":"x=1", "머리말":{...}, "본문":"..."}
-//       return {"코드": 200, "본문": "안녕", "머리말": {"Content-Type": "text/plain"}}
+//       // 요청 = {"method":"GET", "path":"/a", "query":{"x":"1"}, "headers":{...}, "body":"..."}
+//       return {"code": 200, "body": "안녕", "headers": {"Content-Type": "text/plain"}}
 //
 //   http.serve(8080, 처리)          // 멈출 때까지 계속 (Ctrl+C)
 //   http.serve(8080, 처리, 1)       // 딱 한 번만 받고 돌아오기 (시험할 때)
 //
 // 한 번에 하나씩 받습니다. 사내 도구, 웹훅 받기, 만들어 보기에 알맞습니다.
-func serve(포트, 처리, 몇번 = 0):
-    return httpserve(포트, 처리, 몇번)
+// 손님을 기다리는 동안에는 큰 자물쇠를 놓으므로, 서버를 start() 로 띄워 두고
+// 본 실이나 다른 일감이 그동안 다른 일을 해도 됩니다. 다만 요청 자체는
+// 여전히 **차례로** 처리합니다 (한 번에 하나).
+func serve(port, handler, count = 0):
+    return httpserve(port, handler, count)

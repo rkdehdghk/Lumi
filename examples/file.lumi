@@ -21,8 +21,8 @@
 // 이 예제는 자기 폴더(examples/)에 파일을 만들었다가 맨 끝에서 다시 지웁니다.
 
 print("=== 쓰고 읽기 ===")
-val 몇글자 = write("첫 줄\n둘째 줄\n", 'note.txt')
-print("쓴 글자 수:", 몇글자)                 // 9
+val nchars = write("첫 줄\n둘째 줄\n", 'note.txt')
+print("쓴 글자 수:", nchars)                 // 9
 print(read('note.txt'))                      // 첫 줄 / 둘째 줄
 
 print("")
@@ -50,16 +50,16 @@ print('C:\Windows\notepad.exe')              // 그대로   ' ' 안에서는 \ �
 print("")
 print("=== 줄로 나누어 다루기 ===")
 // 파일을 읽으면 그냥 글자라서, 여느 문자열처럼 다루면 됩니다.
-val 줄들 = split("\n", read('note.txt'))
-erase(len(줄들) - 1, 줄들)                    // 맨 끝 줄바꿈이 남긴 빈 칸 지우기
-print("줄 수:", len(줄들))                    // 3
-for 줄 in 줄들:
-    print("-", 줄)
+val lines = split("\n", read('note.txt'))
+erase(len(lines) - 1, lines)                    // 맨 끝 줄바꿈이 남긴 빈 칸 지우기
+print("줄 수:", len(lines))                    // 3
+for line in lines:
+    print("-", line)
 
 print("")
 print("=== 표를 파일로 (join 과 짝) ===")
-val 이름들 = ["보리", "초코", "루미"]
-write(join("\n", 이름들), '이름표.txt')
+val names = ["보리", "초코", "루미"]
+write(join("\n", names), '이름표.txt')
 print(read('이름표.txt'))
 
 print("")
@@ -72,66 +72,66 @@ print(read("cp949", 'note.txt'))             // 한글 파일
 
 print("")
 print("=== 만들기 (newfile) ===")
-val 기록 = '기록.txt'
-print(newfile(기록))                         // true    빈 파일을 새로 만들었습니다
-append("첫 기록\n", 기록)
-print(newfile(기록))                         // false   이미 있어서 그대로 둡니다
-append("한 줄 더\n", 기록)
-print(read(기록), keep(""))                  // 두 줄 다 살아 있습니다
+val logname = '기록.txt'
+print(newfile(logname))                         // true    빈 파일을 새로 만들었습니다
+append("첫 기록\n", logname)
+print(newfile(logname))                         // false   이미 있어서 그대로 둡니다
+append("한 줄 더\n", logname)
+print(read(logname), keep(""))                  // 두 줄 다 살아 있습니다
 // newfile 은 있는 파일을 건드리지 않습니다.
 // write("", 기록) 은 반대로 내용을 지워 버리니 조심하세요.
 
 print("")
 print("=== 폴더 만들기 및 지우기 (newdir · deldir) ===")
-val 연습폴더 = '연습폴더'
-print(newdir(연습폴더))                      // true    새 폴더를 만들었습니다
-print(newdir(연습폴더))                      // false   이미 있어서 그대로 둡니다
-newfile(연습폴더 + '/안속.txt')
-print(deldir(연습폴더))                      // true    속에 파일이 있어도 깔끔히 지웁니다
+val workdir = '연습폴더'
+print(newdir(workdir))                      // true    새 폴더를 만들었습니다
+print(newdir(workdir))                      // false   이미 있어서 그대로 둡니다
+newfile(workdir + '/안속.txt')
+print(deldir(workdir))                      // true    속에 파일이 있어도 깔끔히 지웁니다
 
 print("")
 print("=== 열어 두고 한 줄씩 쓰기 (open · writeline · close) ===")
 // 여는 방법(read / write / append)은 따옴표 없이 적습니다. 안 적으면 읽기입니다.
-val 일기 = open(write, '일기.txt')
-print(type(일기))                            // file
-print(writeline("월요일: 비", 일기))          // 7   붙인 줄바꿈까지 셉니다
-writeline("화요일: 맑음", 일기)
-writeline("수요일: 눈", 일기)
-print(close(일기))                           // true
-print(close(일기))                           // false   이미 닫혔습니다
+val diary = open(write, '일기.txt')
+print(type(diary))                            // file
+print(writeline("월요일: 비", diary))          // 7   붙인 줄바꿈까지 셉니다
+writeline("화요일: 맑음", diary)
+writeline("수요일: 눈", diary)
+print(close(diary))                           // true
+print(close(diary))                           // false   이미 닫혔습니다
 
 print("")
 print("=== 한 줄씩 읽기 (readline · isend) ===")
-val 읽기 = open('일기.txt')
-while not isend(읽기):
-    print("-", readline(읽기))               // 줄바꿈이 빠진 '그 줄의 내용'
-close(읽기)
+val reader = open('일기.txt')
+while not isend(reader):
+    print("-", readline(reader))               // 줄바꿈이 빠진 '그 줄의 내용'
+close(reader)
 
 print("")
 print("=== 한 줄 읽어 한 줄 쓰기 (둘은 정확히 반대) ===")
-val 안 = open('일기.txt')
-val 밖 = open(write, '일기복사.txt')
-while not isend(안):
-    writeline(readline(안), 밖)
-close(안)
-close(밖)
+val src = open('일기.txt')
+val dst = open(write, '일기복사.txt')
+while not isend(src):
+    writeline(readline(src), dst)
+close(src)
+close(dst)
 print(read('일기복사.txt') == read('일기.txt'))   // true   그대로 옮겨졌습니다
 delfile('일기복사.txt')
 
 print("")
 print("=== 한 줄만 읽고, 나머지는 통째로 ===")
-val 반쯤 = open(read, '일기.txt')
-print("첫 줄만:", readline(반쯤))
+val partial = open(read, '일기.txt')
+print("첫 줄만:", readline(partial))
 print("남은 것:")
-print(read(반쯤), keep(""))                  // 열어 둔 파일에는 read(파일)
-print("끝인가?", isend(반쯤))                 // true
-close(반쯤)
+print(read(partial), keep(""))                  // 열어 둔 파일에는 read(파일)
+print("끝인가?", isend(partial))                 // true
+close(partial)
 
 print("")
 print("=== 이어 쓰기로 열기 (append) ===")
-val 더 = open(append, '일기.txt')
-writeline("목요일: 흐림", 더)
-close(더)
+val appender = open(append, '일기.txt')
+writeline("목요일: 흐림", appender)
+close(appender)
 print("줄 수:", len(split("\n", read('일기.txt'))) - 1)   // 4
 delfile('일기.txt')
 
@@ -154,11 +154,11 @@ delfile('짐.txt')
 
 print("")
 print("=== 지우기 (delfile) ===")
-print(delfile(기록))                         // true
-print(isfile(기록))                          // false
+print(delfile(logname))                         // true
+print(isfile(logname))                          // false
 // 없는 파일을 지우면 오류입니다. 모를 때는 먼저 물어봅니다:
-if isfile(기록):
-    delfile(기록)
+if isfile(logname):
+    delfile(logname)
 print("지운 파일은 휴지통에 가지 않습니다.")
 
 // 이 예제가 만든 나머지도 치웁니다

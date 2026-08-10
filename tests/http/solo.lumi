@@ -1,0 +1,44 @@
+// 한 프로그램 안에서 — 서버가 손님을 기다리는 동안 다른 일감이 도는가.
+//
+// 예전에는 httpserve 가 큰 자물쇠를 **쥔 채** accept 에서 기다렸습니다.  그래서
+// 서버를 띄우는 순간 인터프리터 전체가 멈췄고, 본 실은 한 줄도 못 돌았습니다.
+// (client.lumi 는 서버와 손님을 **다른 프로그램**으로 돌리므로 이것을 못 잡습니다.)
+bring http
+
+val fail = 0
+func check(label, want, got):
+    if want == got:
+        print("  ok   " + label)
+    else:
+        fail = fail + 1
+        print("  FAIL " + label + " : 기대 " + str(want) + " 인데 " + str(got))
+
+func handler(req):
+    return {"code": 200, "body": "solo " + req["path"]}
+
+func server():
+    return http.serve(18078, handler, 2)
+
+val job = start(server)
+sleep(0.3)
+
+// 서버가 기다리는 동안 본 실이 셈을 마칠 수 있어야 합니다.
+// 자물쇠를 쥐고 기다리던 때에는 여기서 영영 멈췄습니다.
+val t0 = clock()
+val sum = 0
+for val i = 0, i < 200000, i++:
+    sum = sum + i
+check("서버가 기다리는 동안 본 실이 돈다", true, clock() - t0 < 5.0)
+check("셈이 제대로 끝났다", 19999900000, sum)
+
+// 손님 노릇도 같은 프로그램이 합니다 (서버는 딱 두 번만 받고 돌아옵니다).
+val a = http.get("http://127.0.0.1:18078/hello")
+check("첫 손님", "solo /hello", a["body"])
+val b = http.get("http://127.0.0.1:18078/again")
+check("둘째 손님", "solo /again", b["body"])
+check("서버가 받은 손님 수", 2, wait(job))
+
+if fail == 0:
+    print("  http 한 프로그램: 모두 통과")
+else:
+    print("  http 한 프로그램: 실패 " + str(fail) + " 건")

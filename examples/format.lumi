@@ -16,16 +16,16 @@ print(format("사과", "{0}는 맛있어요. {0} 좋아!"))           // 사과�
 
 print("")
 print("=== 리스트나 튜플을 묶어서 넘기기 ===")
-val 품목 = ["사과", 3, 1500]
-print(format(품목, "품목: {}, 개수: {}개, 가격: {}원"))      // 품목: 사과, 개수: 3개, 가격: 1500원
+val item = ["사과", 3, 1500]
+print(format(item, "품목: {}, 개수: {}개, 가격: {}원"))      // 품목: 사과, 개수: 3개, 가격: 1500원
 
-val 점수목록 = (90, 85, 100)
-print(format(점수목록, "국어: {0}, 영어: {1}, 수학: {2}"))     // 국어: 90, 영어: 85, 수학: 100
+val scores = (90, 85, 100)
+print(format(scores, "국어: {0}, 영어: {1}, 수학: {2}"))     // 국어: 90, 영어: 85, 수학: 100
 
 print("")
 print("=== 딕셔너리로 이름 맞춰 채우기 ({key}) ===")
-val 사용자 = {"name": "Alex", "score": 95}
-print(format(사용자, "User {name} scored {score} points")) // User Alex scored 95 points
+val user = {"name": "Alex", "score": 95}
+print(format(user, "User {name} scored {score} points")) // User Alex scored 95 points
 
 print("")
 print("=== 서식 지정자 (소수점, 진법, 정렬, 0채우기) ===")

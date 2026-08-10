@@ -3,17 +3,17 @@
 bring http
 
 func 처리(요청):
-    if 요청["길"] == "/인사":
+    if 요청["path"] == "/인사":
         val 이름 = "없음"
-        if has(요청["물음"], "이름"):
-            이름 = 요청["물음"]["이름"]
-        return {"코드": 200, "본문": "안녕 " + 이름,
-                "머리말": {"Content-Type": "text/plain; charset=utf-8"}}
-    if 요청["길"] == "/메아리":
-        return {"코드": 200, "본문": 요청["방법"] + "|" + 요청["본문"]}
-    if 요청["길"] == "/터져":
+        if has(요청["query"], "이름"):
+            이름 = 요청["query"]["이름"]
+        return {"code": 200, "body": "안녕 " + 이름,
+                "headers": {"Content-Type": "text/plain; charset=utf-8"}}
+    if 요청["path"] == "/메아리":
+        return {"code": 200, "body": 요청["method"] + "|" + 요청["body"]}
+    if 요청["path"] == "/터져":
         val xs = [1]
         return xs[99]
-    return {"코드": 404, "본문": "없는 길"}
+    return {"code": 404, "body": "없는 길"}
 
 http.serve(18077, 처리, 4)

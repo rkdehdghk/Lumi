@@ -34,10 +34,10 @@ print("=== where 로 기억해 두었다가 move 로 되돌아가기 ===")
 use f = open('use_note.txt'):
     print("시작 자리:", where(f), "/ 전체:", len(f), "바이트")
     print("1:", readline(f))
-    val 표시 = where(f)                 // 여기까지 읽었다는 것을 기억
-    print("표시해 둔 자리:", 표시)
+    val mark = where(f)                 // 여기까지 읽었다는 것을 기억
+    print("표시해 둔 자리:", mark)
     print("2:", readline(f))
-    move(표시, f)                       // 되돌아가서
+    move(mark, f)                       // 되돌아가서
     print("다시 2:", readline(f))       // 같은 줄을 한 번 더
 
 print("")
@@ -68,10 +68,10 @@ print("반복문을 빠져나왔습니다")
 
 print("")
 print("=== 겹쳐 쓰기 (안쪽이 먼저 닫힙니다) ===")
-use 안 = open('use_note.txt'):
-    use 밖 = open(write, 'use_copy.txt'):
-        while not isend(안):
-            writeline(readline(안), 밖)
+use src = open('use_note.txt'):
+    use dst = open(write, 'use_copy.txt'):
+        while not isend(src):
+            writeline(readline(src), dst)
 print(read('use_copy.txt'))
 
 print("")

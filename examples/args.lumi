@@ -16,11 +16,11 @@ print("개수  :", len(args()))
 // args(0) 은 '적어 준 그대로'라서, 어떻게 실행했느냐에 따라
 // "args.lumi" 일 수도 "C:\어디\args.lumi" 일 수도 있습니다.
 // 폴더를 떼고 이름만 쓰고 싶으면 이렇게 마지막 조각만 꺼냅니다.
-func 이름만(경로):
-    val 조각 = split("/", replace("\\", "/", 경로))
-    return 조각[-1]
+func basename(path):
+    val parts = split("/", replace("\\", "/", path))
+    return parts[-1]
 
-print("파일  :", 이름만(args(0)))
+print("파일  :", basename(args(0)))
 print("나머지:", args()[1:])       // 파일 이름을 뺀 진짜 인자들
 print("")
 
@@ -39,12 +39,12 @@ print("")
 
 print("=== 3. --이름 값 꼴 읽기 (실무에서 제일 흔한 모양) ===")
 // --port 8080 처럼 '이름 다음 칸이 값'인 꼴을 찾아 읽습니다.
-func option(이름, 없을때):
-    val 목록 = args()
-    for val i = 0, i < len(목록) - 1, i++:
-        if 목록[i] == 이름:
-            return 목록[i + 1]
-    return 없을때
+func option(key, fallback):
+    val argv = args()
+    for val i = 0, i < len(argv) - 1, i++:
+        if argv[i] == key:
+            return argv[i + 1]
+    return fallback
 
 print("포트  :", option("--port", "8080"))
 print("주소  :", option("--host", "localhost"))
@@ -52,8 +52,8 @@ print("")
 
 
 print("=== 4. 그냥 있는지만 보는 깃발(flag) ===")
-func flag(이름):
-    return incount(이름, args()) > 0
+func flag(key):
+    return incount(key, args()) > 0
 
 print("--debug 켜졌나:", flag("--debug"))
 print("")
@@ -61,9 +61,9 @@ print("")
 
 print("=== 5. 이름 빼고 값만 모으기 ===")
 // args(0) 은 파일 이름이니 1번 자리부터 봅니다.
-val 값들 = []
+val picked = []
 for val i = 1, i < len(args()), i++:
-    val 하나 = args(i)
-    if strip(하나)[0:2] != "--":
-        push(값들, 하나)
-print("값들  :", 값들)
+    val one = args(i)
+    if strip(one)[0:2] != "--":
+        push(picked, one)
+print("값들  :", picked)

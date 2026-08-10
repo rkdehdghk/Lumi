@@ -11,33 +11,33 @@
 // 돌려주는 값은 '지운 개수' 이고, 원래 딕셔너리를 바로 고칩니다.
 
 print("=== 1. 키 하나 지우기 ===")
-val 나이 = {"김": 20, "박": 21, "이": 22}
-print(나이)                       // {"김": 20, "박": 21, "이": 22}
-print(del(나이, "박"))            // 1     지운 개수
-print(나이)                       // {"김": 20, "이": 22}
-print(len(나이))                  // 2
+val ages = {"김": 20, "박": 21, "이": 22}
+print(ages)                       // {"김": 20, "박": 21, "이": 22}
+print(del(ages, "박"))            // 1     지운 개수
+print(ages)                       // {"김": 20, "이": 22}
+print(len(ages))                  // 2
 print("")
 
 print("=== 2. 원래 딕셔너리가 바뀝니다 ===")
 // push/pop/insert/erase 와 같은 가족이라, 새 딕셔너리를 만들지 않고
 // 원래 것을 바로 고칩니다. 그래서 이렇게 쓰면 안 됩니다:
-//   나이 = del(나이, "김")      <- 개수(숫자)가 들어가 버립니다
-val 사본 = 나이
-del(나이, "김")
-print(사본)                       // {"이": 22}   같은 딕셔너리라 함께 바뀝니다
+//   ages = del(ages, "김")      <- 개수(숫자)가 들어가 버립니다
+val copy = ages
+del(ages, "김")
+print(copy)                       // {"이": 22}   같은 딕셔너리라 함께 바뀝니다
 print("")
 
 print("=== 3. 여러 키를 한 번에 ===")
-val 재고 = {"사과": 3, "배": 0, "감": 5, "귤": 0}
-print(del(재고, ["배", "귤"]))    // 2
-print(재고)                       // {"사과": 3, "감": 5}
+val stock = {"사과": 3, "배": 0, "감": 5, "귤": 0}
+print(del(stock, ["배", "귤"]))    // 2
+print(stock)                       // {"사과": 3, "감": 5}
 print("")
 
 print("=== 4. 전부 지우기 (비우기) ===")
-val 임시 = {"a": 1, "b": 2, "c": 3}
-print(del(임시))                  // 3     지운 개수
-print(임시)                       // {}
-print(len(임시))                  // 0
+val tmp = {"a": 1, "b": 2, "c": 3}
+print(del(tmp))                  // 3     지운 개수
+print(tmp)                       // {}
+print(len(tmp))                  // 0
 print("")
 
 print("=== 5. has 로 먼저 확인하기 ===")
@@ -53,35 +53,35 @@ print("")
 
 print("=== 6. 지운 값이 필요하면 먼저 꺼내기 ===")
 // del 은 '개수' 를 돌려줍니다. 값이 필요하면 지우기 전에 꺼내 두세요.
-val 점수 = {"수학": 90, "영어": 80}
-val 뺀값 = 점수["영어"]
-del(점수, "영어")
-print(뺀값, 점수)                 // 80 {"수학": 90}
+val scores = {"수학": 90, "영어": 80}
+val taken = scores["영어"]
+del(scores, "영어")
+print(taken, scores)                 // 80 {"수학": 90}
 print("")
 
 print("=== 7. 값으로 찾아 지우기 ===")
 // keys 로 키를 돌면서 조건에 맞는 것만 모아 한 번에 지웁니다.
-val 창고 = {"못": 0, "망치": 2, "톱": 0, "자": 7}
-val 빈것 = []
-for k in 창고:
-    if 창고[k] == 0:
-        push(빈것, k)
-print(빈것)                       // ["못", "톱"]
-print(del(창고, 빈것))            // 2
-print(창고)                       // {"망치": 2, "자": 7}
+val store = {"못": 0, "망치": 2, "톱": 0, "자": 7}
+val empty = []
+for k in store:
+    if store[k] == 0:
+        push(empty, k)
+print(empty)                       // ["못", "톱"]
+print(del(store, empty))            // 2
+print(store)                       // {"망치": 2, "자": 7}
 print("")
 
 print("=== 8. 같은 키를 두 번 적으면 ===")
-val 두번 = {"a": 1, "b": 2}
-print(del(두번, ["a", "a"]))      // 1     한 번만 셉니다
-print(두번)                       // {"b": 2}
+val twice = {"a": 1, "b": 2}
+print(del(twice, ["a", "a"]))      // 1     한 번만 셉니다
+print(twice)                       // {"b": 2}
 print("")
 
 print("=== 9. 키의 종류 ===")
 // 키가 될 수 있는 것은 문자열 / 숫자 / 참거짓 입니다. 지울 때도 똑같습니다.
-val 섞임 = {1: "하나", 2: "둘", "글": "자"}
-print(del(섞임, [1, 2]))          // 2
-print(섞임)                       // {"글": "자"}
+val mixed = {1: "하나", 2: "둘", "글": "자"}
+print(del(mixed, [1, 2]))          // 2
+print(mixed)                       // {"글": "자"}
 print("")
 
 print("=== 10. 리스트는 erase, 딕셔너리는 del ===")

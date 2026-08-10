@@ -1,0 +1,51 @@
+// 순환 참조 수집기 — 두 가지를 봅니다.
+//   1) 살아 있는 값을 치우지 않는가  (예전에는 치웠습니다 — 실행 중인 함수의
+//      지역 자리가 뿌리가 아니어서, gc() 한 번에 지역 값이 사라졌습니다)
+//   2) 서로 붙든 값을 정말로 치우는가
+// 자세한 것은 docs/Lumi_Changes.md 의 '순환 수집기' 항목에 있습니다.
+
+class Node:
+    func init(tag):
+        this.tag = tag
+        this.peer = none
+
+func makecycle():
+    val a = Node("a")
+    val b = Node("b")
+    a.peer = b
+    b.peer = a
+    return 0
+
+
+test "gc 는 실행 중인 함수의 지역 값을 건드리지 않는다":
+    val items = [1, 2, 3]
+    val holder = {"inside": items}
+    val grab = func: items          // 지역 자리를 붙드는 클로저
+    val obj = Node("keep")
+    obj.peer = items
+    gc()
+    assertsame([1, 2, 3], items)
+    assertsame([1, 2, 3], holder["inside"])
+    assertsame([1, 2, 3], grab())
+    assertsame([1, 2, 3], obj.peer)
+
+test "gc 는 for 한 바퀴의 이름도 건드리지 않는다":
+    val seen = []
+    for one in [[1], [2], [3]]:
+        gc()
+        push(seen, one[0])
+    assertsame([1, 2, 3], seen)
+
+test "서로 붙든 값은 치워진다":
+    gc()                            // 앞선 시험이 남긴 것부터 비웁니다
+    makecycle()
+    makecycle()
+    assertsame(4, gc())             // 두 짝 = 객체 넷
+
+test "저절로 치웁니다 — 사람이 gc() 를 안 불러도":
+    gc()
+    for val i = 0, i < 60000, i++:
+        makecycle()
+    // 문턱을 넘을 때마다 저절로 돌았으니, 지금 남아 있는 쓰레기는 문턱보다 적습니다.
+    // (저절로 치우지 않던 때에는 여기서 12만 개가 나왔습니다.)
+    assert(gc() < 40000, "쌓인 순환이 너무 많습니다 - 저절로 치우기가 안 도는 듯합니다")

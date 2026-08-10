@@ -19,8 +19,8 @@ print("")
 print("=== 보이지 않는 글자 ===")
 // \r \a \b \f \v \e - 하나같이 글자 하나입니다
 print(len("\r"), len("\a"), len("\b"), len("\f"), len("\v"), len("\e"))
-val 줄 = "첫 줄\r\n둘째 줄"                  // 윈도우식 줄바꿈을 직접 적을 때
-print(len(줄))                              // 9     \r \n 도 글자 하나씩
+val line = "첫 줄\r\n둘째 줄"                  // 윈도우식 줄바꿈을 직접 적을 때
+print(len(line))                              // 9     \r \n 도 글자 하나씩
 print("색\e[0m 은 \\e 로 시작합니다")         // 터미널 색깔 코드
 
 print("")
@@ -49,11 +49,11 @@ print('안녕 ' + "루미")                      // 안녕 루미     서로 이
 print("")
 print("=== 어느 쪽을 쓸까 ===")
 // 줄바꿈·탭이 필요하면 큰따옴표
-val 표 = "이름\t점수\n루미\t100"
-print(표)
+val tabbed = "이름\t점수\n루미\t100"
+print(tabbed)
 // 주소는 언제나 작은따옴표 (탐색기에서 복사해 그대로 붙여넣기)
-val 경로 = 'C:\Windows\notepad.exe'
-print(경로)                                  // C:\Windows\notepad.exe  \ 가 그대로 살아 있습니다
+val winpath = 'C:\Windows\notepad.exe'
+print(winpath)                                  // C:\Windows\notepad.exe  \ 가 그대로 살아 있습니다
 // (그 파일이 정말 있는지는 여기서 묻지 않습니다 — 윈도우에만 있는 파일이라
 //  리눅스·맥에서는 답이 달라져 시험이 기계마다 갈립니다)
 print(isfile('note.txt'))                   // false    이름만 적은 것도 주소입니다

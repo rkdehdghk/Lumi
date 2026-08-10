@@ -5,61 +5,61 @@
 
 bring csv
 
-func 확인(이름, 나온것, 바라던것):
-    if str(나온것) != str(바라던것):
-        print("FAIL:", 이름)
-        print("  나온것  :", 나온것)
-        print("  바라던것:", 바라던것)
+func check(label, got, want):
+    if str(got) != str(want):
+        print("FAIL:", label)
+        print("  나온것  :", got)
+        print("  바라던것:", want)
         error("csv test failed")
-    print("ok -", 이름)
+    print("ok -", label)
 
 
 print("=== 1. CSV 텍스트 읽기 (csv.parse) ===")
-val 글 = "이름,부서,금액\n김철수,영업,1200\n이영희,개발,3400\n"
-val 표 = csv.parse(글)
-print(표)
-확인("보통 표", 표, [["이름", "부서", "금액"], ["김철수", "영업", "1200"], ["이영희", "개발", "3400"]])
+val csv_text = "이름,부서,금액\n김철수,영업,1200\n이영희,개발,3400\n"
+val table = csv.parse(csv_text)
+print(table)
+check("보통 표", table, [["이름", "부서", "금액"], ["김철수", "영업", "1200"], ["이영희", "개발", "3400"]])
 
 print("")
 print("=== 2. 따옴표로 감싼 칸 ===")
 // 칸 안에 쉼표가 있으면 큰따옴표로 감쌉니다. 큰따옴표 자체는 "" 두 개로 적습니다.
-val 까다로운 = csv.parse("a,\"쉼표, 있음\",\"큰\"\"따옴표\"\n")
-print(까다로운)
-확인("쉼표와 따옴표", 까다로운, [["a", "쉼표, 있음", "큰\"따옴표"]])
+val tricky = csv.parse("a,\"쉼표, 있음\",\"큰\"\"따옴표\"\n")
+print(tricky)
+check("쉼표와 따옴표", tricky, [["a", "쉼표, 있음", "큰\"따옴표"]])
 
 // 줄바꿈도 따옴표 안에서는 값의 일부입니다
-val 여러줄 = csv.parse("메모,값\n\"첫 줄\n둘째 줄\",7\n")
-확인("칸 안의 줄바꿈", 여러줄[1][0], "첫 줄\n둘째 줄")
+val multiline = csv.parse("메모,값\n\"첫 줄\n둘째 줄\",7\n")
+check("칸 안의 줄바꿈", multiline[1][0], "첫 줄\n둘째 줄")
 
 // 줄바꿈 없이 끝나도 마지막 줄을 놓치지 않습니다
-확인("마지막 줄", csv.parse("a,b"), [["a", "b"]])
-확인("빈 글", csv.parse(""), [])
+check("마지막 줄", csv.parse("a,b"), [["a", "b"]])
+check("빈 글", csv.parse(""), [])
 
 print("")
 print("=== 3. 다시 CSV 텍스트로 (csv.line / csv.build) ===")
 print(csv.line(["김철수", "영업, 2팀", 1200]))
-확인("감쌀 때만 감싸기", csv.line(["김철수", "영업, 2팀", 1200]), "김철수,\"영업, 2팀\",1200")
-확인("왕복", csv.parse(csv.build(표)), 표)
+check("감쌀 때만 감싸기", csv.line(["김철수", "영업, 2팀", 1200]), "김철수,\"영업, 2팀\",1200")
+check("왕복", csv.parse(csv.build(table)), table)
 
 print("")
 print("=== 4. 첫 줄을 이름표로 (csv.head) ===")
-val 줄들 = csv.head(표)
-for 사람 in 줄들:
-    print(사람["이름"], "/", 사람["부서"], "/", 사람["금액"])
-확인("이름표로 읽기", 줄들[1]["부서"], "개발")
+val people = csv.head(table)
+for person in people:
+    print(person["이름"], "/", person["부서"], "/", person["금액"])
+check("이름표로 읽기", people[1]["부서"], "개발")
 
 // 고쳐서 다시 행으로 되돌리기
-줄들[0]["금액"] = "9999"
-확인("head 왕복", csv.unhead(표[0], 줄들)[1][2], "9999")
+people[0]["금액"] = "9999"
+check("head 왕복", csv.unhead(table[0], people)[1][2], "9999")
 
 print("")
 print("=== 5. 파일로 저장하고 다시 읽기 (csv.save / csv.load) ===")
 // 한국 엑셀이 만든 CSV 는 보통 "cp949", 웹에서 받은 것은 "utf-8" 입니다.
-val 쓴글자수 = csv.save("cp949", csv.unhead(표[0], 줄들), "매출.csv")
-print("쓴 글자 수:", 쓴글자수)
-val 다시 = csv.load("cp949", "매출.csv")
-print(다시)
-확인("파일 왕복", 다시, csv.unhead(표[0], 줄들))
+val written = csv.save("cp949", csv.unhead(table[0], people), "매출.csv")
+print("쓴 글자 수:", written)
+val again = csv.load("cp949", "매출.csv")
+print(again)
+check("파일 왕복", again, csv.unhead(table[0], people))
 delfile("매출.csv")
 
 print("")

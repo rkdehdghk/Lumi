@@ -6,23 +6,23 @@
 // 옵션이 여럿인 함수를 만들 때, 함수를 여러 개로 쪼개지 않아도 됩니다.
 
 print("=== 1. 기본값 ===")
-func 인사(이름, 말 = "안녕", 느낌표 = false):
-    val s = 말 + ", " + 이름
-    if 느낌표:
+func greet(name, word = "안녕", bang = false):
+    val s = word + ", " + name
+    if bang:
         return s + "!"
     return s
 
-print(인사("루미"))                    // 안녕, 루미
-print(인사("루미", "반가워"))           // 반가워, 루미
-print(인사("루미", "반가워", true))     // 반가워, 루미!
+print(greet("루미"))                    // 안녕, 루미
+print(greet("루미", "반가워"))           // 반가워, 루미
+print(greet("루미", "반가워", true))     // 반가워, 루미!
 print("")
 
 
 print("=== 2. 이름을 붙여 주기 ===")
 // 가운데 것을 건너뛰고 뒤엣것만 주고 싶을 때 씁니다.
-print(인사("루미", 느낌표 = true))      // 안녕, 루미!
+print(greet("루미", bang = true))      // 안녕, 루미!
 // 이름을 붙이면 순서를 바꿔도 됩니다.
-print(인사(말 = "하이", 이름 = "영희"))
+print(greet(word = "하이", name = "영희"))
 print("")
 
 
@@ -38,65 +38,65 @@ print("")
 print("=== 4. 기본값은 부를 때마다 새로 셈합니다 ===")
 // 파이썬에서 자주 걸리는 함정(기본값 리스트를 함수가 계속 나눠 쓰는 것)이
 // Lumi 에는 없습니다. 부를 때마다 [] 를 새로 만듭니다.
-func 담기(값, 통 = []):
-    push(통, 값)
-    return 통
+func collect(item, bucket = []):
+    push(bucket, item)
+    return bucket
 
-print(담기(1))       // [1]
-print(담기(2))       // [2]   <- [1, 2] 가 아닙니다
+print(collect(1))       // [1]
+print(collect(2))       // [2]   <- [1, 2] 가 아닙니다
 print("")
 
 // 기본값 안에서 바깥 변수도 쓸 수 있습니다.
-val 기본단위 = "개"
-func 세기(수, 단위 = 기본단위):
-    return str(수) + 단위
-print(세기(3))
-print(세기(3, "명"))
+val DEFAULT_UNIT = "개"
+func count(n, unit = DEFAULT_UNIT):
+    return str(n) + unit
+print(count(3))
+print(count(3, "명"))
 print("")
 
 
 print("=== 5. 클래스에서도 똑같이 ===")
-class 상자:
-    func init(이름, 무게 = 1.0):
-        this.이름 = 이름
-        this.무게 = 무게
+class Box:
+    func init(name, weight = 1.0):
+        this.name = name
+        this.weight = weight
 
-    func 늘리기(배수 = 2):
-        this.무게 = this.무게 * 배수
-        return this.무게
+    func grow(factor = 2):
+        this.weight = this.weight * factor
+        return this.weight
 
     func text():
-        return this.이름 + "(" + str(this.무게) + ")"
+        return this.name + "(" + str(this.weight) + ")"
 
-val 사과 = 상자("사과")
-print("만들 때 생략 :", 사과)
-print("메서드 생략  :", 사과.늘리기())
-print("이름 붙이기  :", 사과.늘리기(배수 = 10))
+val apple = Box("사과")
+print("만들 때 생략 :", apple)
+print("메서드 생략  :", apple.grow())
+print("이름 붙이기  :", apple.grow(factor = 10))
 
-val 배 = 상자(이름 = "배", 무게 = 3.0)
-print("만들 때 이름 :", 배)
+val pear = Box(name = "배", weight = 3.0)
+print("만들 때 이름 :", pear)
 print("")
 
 
 print("=== 6. 실무에서 쓰는 모양 ===")
 // 옵션이 많은 함수를 하나로 둘 수 있습니다.
-func 표그리기(줄들, 구분자 = " | ", 머리말 = true, 최대 = 0):
-    val 볼것 = 줄들
-    if 최대 > 0:
-        볼것 = 줄들[0:최대]
-    val 나온것 = []
-    for val i = 0, i < len(볼것), i++:
-        val 줄 = join(구분자, 볼것[i])
-        if i == 0 and 머리말:
-            push(나온것, 줄)
-            push(나온것, "-" * len(줄))
+func draw_table(rows, sep = " | ", header = true, limit = 0):
+    val shown = rows
+    if limit > 0:
+        shown = rows[0:limit]
+    val out = []
+    for val i = 0, i < len(shown), i++:
+        val line = join(sep, shown[i])
+        if i == 0 and header:
+            push(out, line)
+            push(out, "-" * len(line))
         else:
-            push(나온것, 줄)
-    return join("\n", 나온것)
+            push(out, line)
+    return join("\n", out)
 
-val 자료 = [["이름", "부서"], ["김철수", "영업"], ["이영희", "개발"]]
-print(표그리기(자료))
+val data = [["이름", "부서"], ["김철수", "영업"], ["이영희", "개발"]]
+print(draw_table(data))
 print("")
-print(표그리기(자료, 구분자 = ", ", 머리말 = false))
+print(draw_table(data, sep = ", ", header = false))
 print("")
-print(표그리기(자료, 최대 = 2))
+print(draw_table(data, limit = 2))

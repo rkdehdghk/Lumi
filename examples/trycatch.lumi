@@ -93,18 +93,18 @@ print("=== 6. 종류에는 갈래가 있습니다 ===")
 //     ├ FileError   ─ FileNotFound
 //     ├ TypeError / ValueError / NameError / MathError / ArgumentError
 //     └ (내가 error("이름", ...) 로 지은 종류들)
-func 해보기(설명, 몸통):
+func attempt(label, body):
     try:
-        몸통()
-        print(설명, "-> 오류 없음")
+        body()
+        print(label, "-> 오류 없음")
     catch LookupError e:
-        print(설명, "-> LookupError 로 잡음 (진짜 종류:", e.type + ")")
+        print(label, "-> LookupError 로 잡음 (진짜 종류:", e.type + ")")
     catch e:
-        print(설명, "-> 나머지:", e.type)
+        print(label, "-> 나머지:", e.type)
 
-해보기("없는 자리  ", func: [1][5])        // IndexError  -> LookupError 로 잡힘
-해보기("없는 키    ", func: {"a": 1}["b"])  // KeyError    -> LookupError 로 잡힘
-해보기("0으로 나누기", func: 1 / 0)         // MathError   -> 나머지로
+attempt("없는 자리  ", func: [1][5])        // IndexError  -> LookupError 로 잡힘
+attempt("없는 키    ", func: {"a": 1}["b"])  // KeyError    -> LookupError 로 잡힘
+attempt("0으로 나누기", func: 1 / 0)         // MathError   -> 나머지로
 
 // Error 는 모든 것의 부모라 전부 잡습니다.
 try:
@@ -128,13 +128,13 @@ catch e:
 print("")
 print("=== 8. 내가 지은 종류 ===")
 // error("종류이름", "메시지") 로 아무 종류나 만들 수 있습니다.
-// 한글 종류 이름을 쓸 때는 catch 뒤에 '종류 담을이름' 을 둘 다 적어 주세요.
-func 출금(잔액, 금액):
-    if 금액 > 잔액:
-        error("잔액부족", "잔액 " + str(잔액) + "원인데 " + str(금액) + "원을 찾으려 했습니다")
-    return 잔액 - 금액
+// 잡을 때는 catch 뒤에 '종류 담을이름' 을 둘 다 적어 주세요.
+func withdraw(balance, amount):
+    if amount > balance:
+        error("InsufficientFunds", "잔액 " + str(balance) + "원인데 " + str(amount) + "원을 찾으려 했습니다")
+    return balance - amount
 
 try:
-    print(출금(1000, 3000))
-catch 잔액부족 e:
+    print(withdraw(1000, 3000))
+catch InsufficientFunds e:
     print("잡음:", e.type, "/", e.message)

@@ -44,27 +44,27 @@ print(shuffle([7]))                            // [7]  하나뿐이면 그대로
 print("")
 print("=== 자주 쓰는 모양 ===")
 // 1) 아무거나 하나 고르기
-val 메뉴 = ["김밥", "라면", "돈까스", "비빔밥"]
-print("오늘 점심:", shuffle(메뉴)[0])
+val menu = ["김밥", "라면", "돈까스", "비빔밥"]
+print("오늘 점심:", shuffle(menu)[0])
 
 // 2) 여러 개 뽑기 (섞고 앞에서 자르기)
-print("추천 2개:", shuffle(메뉴)[0:2])
+print("추천 2개:", shuffle(menu)[0:2])
 
 // 3) 순서 정하기 (제비뽑기)
-val 이름들 = ["가영", "나연", "다은", "라희"]
-val 차례 = shuffle(이름들)
-for i in forr(val n = 0, n < len(차례), n = n + 1):
-    print(i + 1, "번째:", 차례[i])
+val names = ["가영", "나연", "다은", "라희"]
+val order = shuffle(names)
+for i in forr(val n = 0, n < len(order), n = n + 1):
+    print(i + 1, "번째:", order[i])
 
 // 4) 카드 섞기
 print("")
-val 카드 = []
-for 무늬 in ["S", "H", "D", "C"]:
-    for 숫자 in ["A", "2", "3"]:
-        push(카드, 무늬 + 숫자)
-print("카드", len(카드), "장 중 5장:", shuffle(카드)[0:5])
+val deck = []
+for suit in ["S", "H", "D", "C"]:
+    for rank in ["A", "2", "3"]:
+        push(deck, suit + rank)
+print("카드", len(deck), "장 중 5장:", shuffle(deck)[0:5])
 
 // 5) 문제 순서 섞기
-val 문제 = [["2+2는?", 4], ["3*3은?", 9], ["10-1은?", 9]]
-for 한문제 in shuffle(문제):
-    print(한문제[0], "정답:", 한문제[1])
+val quiz = [["2+2는?", 4], ["3*3은?", 9], ["10-1은?", 9]]
+for q in shuffle(quiz):
+    print(q[0], "정답:", q[1])

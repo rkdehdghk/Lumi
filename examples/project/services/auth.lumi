@@ -3,9 +3,9 @@
 
 bring "../models/user"
 
-val 관리자들 = ["김관리", "박관리"]
+val admins = ["김관리", "박관리"]
 
-func 로그인(이름):
-    if incount(이름, 관리자들) > 0:
-        return user.만들기(이름, "admin")
-    return user.손님만들기(이름)
+func login(name):
+    if incount(name, admins) > 0:
+        return user.make(name, "admin")
+    return user.make_guest(name)

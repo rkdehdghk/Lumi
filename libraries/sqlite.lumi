@@ -28,18 +28,18 @@
 
 // --- 라이브러리 열기 (이 파일을 bring 할 때 한 번) --------------------------
 
-func _찾기():
+func _find_lib():
     // 이름을 차례로 넣어 봅니다. cload 가 운영체제 관례대로 장식을 붙여 봅니다.
-    for 이름 in ["sqlite3", "winsqlite3"]:
+    for name in ["sqlite3", "winsqlite3"]:
         try:
-            return cload(이름)
+            return cload(name)
         catch FileNotFound e:
             continue
     error("DatabaseError", "SQLite 를 찾지 못했습니다. 윈도우 10 이상·맥에는 기본으로 "
                          + "있고, 리눅스는 libsqlite3 을 깔면 됩니다 "
                          + "(우분투: apt install libsqlite3-0).")
 
-val _lib = _찾기()
+val _lib = _find_lib()
 
 // SQLite 가 쓰는 번호들
 val _OK = 0
@@ -50,7 +50,7 @@ val _TRANSIENT = -1        // "이 글자를 복사해 두라"는 뜻
 
 // --- 안에서만 쓰는 것들 -----------------------------------------------------
 
-func _쪽(db):
+func _handle(db):
     // db 딕셔너리에서 진짜 주소를 꺼냅니다
     if type(db) != "dict" or not has(db, "_p"):
         error("DatabaseError", "이건 sqlite.open 이 준 데이터베이스가 아닙니다")
@@ -58,96 +58,92 @@ func _쪽(db):
         error("DatabaseError", "이미 닫힌 데이터베이스입니다")
     return db["_p"]
 
-func _까닭(p):
+func _why(p):
     val m = ccall(_lib, "sqlite3_errmsg", "p>s", [p])
     if m == none:
         return "까닭을 알 수 없습니다"
     return m
 
-func _확인(rc, p, 무엇):
-    if rc != _OK:
-        error("DatabaseError", 무엇 + " 실패 (" + str(rc) + "): " + _까닭(p))
-
 // sql 을 준비해서 문(statement) 주소를 돌려줍니다
-func _준비(sql, p, 값들):
-    val 자리 = cbuf(8)
-    val rc = ccall(_lib, "sqlite3_prepare_v2", "psipp>i", [p, sql, -1, 자리, 0])
-    val st = cget("p", 자리)
-    cfree(자리)
+func _prepare(sql, p, values):
+    val slot = cbuf(8)
+    val rc = ccall(_lib, "sqlite3_prepare_v2", "psipp>i", [p, sql, -1, slot, 0])
+    val st = cget("p", slot)
+    cfree(slot)
     if rc != _OK:
-        error("DatabaseError", "SQL 을 읽지 못했습니다 (" + str(rc) + "): " + _까닭(p)
+        error("DatabaseError", "SQL 을 읽지 못했습니다 (" + str(rc) + "): " + _why(p)
                              + "\n  SQL: " + sql)
 
     // ? 자리에 값 끼우기 — 자리 번호는 1 부터입니다
     val i = 1
-    for 값 in 값들:
-        val brc = _끼우기(st, i, 값)
+    for v in values:
+        val brc = _bind(st, i, v)
         if brc != _OK:
             ccall(_lib, "sqlite3_finalize", "p>i", [st])
-            error("DatabaseError", str(i) + "번째 값을 넣지 못했습니다: " + _까닭(p))
+            error("DatabaseError", str(i) + "번째 값을 넣지 못했습니다: " + _why(p))
         i = i + 1
     return st
 
-func _끼우기(st, i, 값):
-    if 값 == none:
+func _bind(st, i, v):
+    if v == none:
         return ccall(_lib, "sqlite3_bind_null", "pi>i", [st, i])
-    val t = type(값)
+    val t = type(v)
     if t == "int":
-        return ccall(_lib, "sqlite3_bind_int64", "pil>i", [st, i, 값])
+        return ccall(_lib, "sqlite3_bind_int64", "pil>i", [st, i, v])
     if t == "float":
         // 실수는 마지막 인자라야 넘길 수 있습니다 — 이 서명이 마침 그렇습니다
-        return ccall(_lib, "sqlite3_bind_double", "pid>i", [st, i, 값])
+        return ccall(_lib, "sqlite3_bind_double", "pid>i", [st, i, v])
     if t == "bool":
         val n = 0
-        if 값:
+        if v:
             n = 1
         return ccall(_lib, "sqlite3_bind_int64", "pil>i", [st, i, n])
     if t == "bytes":
-        return ccall(_lib, "sqlite3_bind_blob", "pibip>i", [st, i, 값, len(값), _TRANSIENT])
+        return ccall(_lib, "sqlite3_bind_blob", "pibip>i", [st, i, v, len(v), _TRANSIENT])
     // 그 밖은 글자로
-    return ccall(_lib, "sqlite3_bind_text", "pisip>i", [st, i, str(값), -1, _TRANSIENT])
+    return ccall(_lib, "sqlite3_bind_text", "pisip>i", [st, i, str(v), -1, _TRANSIENT])
 
 // 지금 줄을 딕셔너리로 (칸 이름 -> 값)
-func _한줄(st):
-    val 줄 = {}
-    val 칸수 = ccall(_lib, "sqlite3_column_count", "p>i", [st])
-    for val c = 0, c < 칸수, c++:
-        val 이름 = ccall(_lib, "sqlite3_column_name", "pi>s", [st, c])
-        줄[이름] = _한칸(st, c)
-    return 줄
+func _row(st):
+    val row = {}
+    val ncols = ccall(_lib, "sqlite3_column_count", "p>i", [st])
+    for val c = 0, c < ncols, c++:
+        val name = ccall(_lib, "sqlite3_column_name", "pi>s", [st, c])
+        row[name] = _cell(st, c)
+    return row
 
-func _한칸(st, c):
-    val 종류 = ccall(_lib, "sqlite3_column_type", "pi>i", [st, c])
-    if 종류 == 5:                                      // NULL
+func _cell(st, c):
+    val kind = ccall(_lib, "sqlite3_column_type", "pi>i", [st, c])
+    if kind == 5:                                      // NULL
         return none
-    if 종류 == 1:                                      // INTEGER
+    if kind == 1:                                      // INTEGER
         return ccall(_lib, "sqlite3_column_int64", "pi>l", [st, c])
-    if 종류 == 2:                                      // FLOAT
+    if kind == 2:                                      // FLOAT
         return ccall(_lib, "sqlite3_column_double", "pi>d", [st, c])
-    if 종류 == 4:                                      // BLOB
-        val 주소 = ccall(_lib, "sqlite3_column_blob", "pi>p", [st, c])
-        val 길이 = ccall(_lib, "sqlite3_column_bytes", "pi>i", [st, c])
-        if 주소 == 0:
+    if kind == 4:                                      // BLOB
+        val addr = ccall(_lib, "sqlite3_column_blob", "pi>p", [st, c])
+        val length = ccall(_lib, "sqlite3_column_bytes", "pi>i", [st, c])
+        if addr == 0:
             return encode("")
-        return cbytes(길이, 주소)
+        return cbytes(length, addr)
     return ccall(_lib, "sqlite3_column_text", "pi>s", [st, c])   // TEXT
 
 
 // --- 열고 닫기 --------------------------------------------------------------
 
 // 경로에 ":memory:" 를 주면 기억 장치에만 두는 데이터베이스가 됩니다 (시험용).
-func open(경로):
-    val 자리 = cbuf(8)
-    val rc = ccall(_lib, "sqlite3_open", "sp>i", [경로, 자리])
-    val p = cget("p", 자리)
-    cfree(자리)
+func open(path):
+    val slot = cbuf(8)
+    val rc = ccall(_lib, "sqlite3_open", "sp>i", [path, slot])
+    val p = cget("p", slot)
+    cfree(slot)
     if rc != _OK:
-        val 말 = "열지 못했습니다"
+        val why = "열지 못했습니다"
         if p != 0:
-            말 = _까닭(p)
+            why = _why(p)
             ccall(_lib, "sqlite3_close", "p>i", [p])
-        error("DatabaseError", 경로 + " 를 열지 못했습니다 (" + str(rc) + "): " + 말)
-    return {"_p": p, "경로": 경로}
+        error("DatabaseError", path + " 를 열지 못했습니다 (" + str(rc) + "): " + why)
+    return {"_p": p, "path": path}
 
 func close(db):
     if type(db) != "dict" or not has(db, "_p"):
@@ -163,51 +159,51 @@ func close(db):
 
 // 줄을 돌려주지 않는 것 (create / insert / update / delete).
 // 바뀐 줄 수를 돌려줍니다.
-func run(sql, db, 값들 = []):
-    val p = _쪽(db)
-    val st = _준비(sql, p, 값들)
+func run(sql, db, values = []):
+    val p = _handle(db)
+    val st = _prepare(sql, p, values)
     val rc = ccall(_lib, "sqlite3_step", "p>i", [st])
     ccall(_lib, "sqlite3_finalize", "p>i", [st])
     if rc != _DONE and rc != _ROW:
-        error("DatabaseError", "돌리지 못했습니다 (" + str(rc) + "): " + _까닭(p)
+        error("DatabaseError", "돌리지 못했습니다 (" + str(rc) + "): " + _why(p)
                              + "\n  SQL: " + sql)
     return ccall(_lib, "sqlite3_changes", "p>i", [p])
 
 // 줄들을 딕셔너리 리스트로 돌려줍니다.
-func rows(sql, db, 값들 = []):
-    val p = _쪽(db)
-    val st = _준비(sql, p, 값들)
-    val 나온것 = []
+func rows(sql, db, values = []):
+    val p = _handle(db)
+    val st = _prepare(sql, p, values)
+    val out = []
     val rc = ccall(_lib, "sqlite3_step", "p>i", [st])
     while rc == _ROW:
-        push(나온것, _한줄(st))
+        push(out, _row(st))
         rc = ccall(_lib, "sqlite3_step", "p>i", [st])
     ccall(_lib, "sqlite3_finalize", "p>i", [st])
     if rc != _DONE:
-        error("DatabaseError", "읽지 못했습니다 (" + str(rc) + "): " + _까닭(p)
+        error("DatabaseError", "읽지 못했습니다 (" + str(rc) + "): " + _why(p)
                              + "\n  SQL: " + sql)
-    return 나온것
+    return out
 
 // 첫 줄 하나만 (없으면 none)
-func one(sql, db, 값들 = []):
-    val 것들 = rows(sql, db, 값들)
-    if len(것들) == 0:
+func one(sql, db, values = []):
+    val found = rows(sql, db, values)
+    if len(found) == 0:
         return none
-    return 것들[0]
+    return found[0]
 
 // 첫 줄 첫 칸만 — count(*) 처럼 값 하나를 셀 때 (없으면 none)
-func value(sql, db, 값들 = []):
-    val 줄 = one(sql, db, 값들)
-    if 줄 == none:
+func value(sql, db, values = []):
+    val row = one(sql, db, values)
+    if row == none:
         return none
-    val 이름들 = keys(줄)
-    if len(이름들) == 0:
+    val names = keys(row)
+    if len(names) == 0:
         return none
-    return 줄[이름들[0]]
+    return row[names[0]]
 
 // 방금 넣은 줄의 번호
 func lastid(db):
-    return ccall(_lib, "sqlite3_last_insert_rowid", "p>l", [_쪽(db)])
+    return ccall(_lib, "sqlite3_last_insert_rowid", "p>l", [_handle(db)])
 
 
 // --- 한 묶음으로 (트랜잭션) --------------------------------------------------
@@ -217,13 +213,13 @@ func lastid(db):
 // 데이터베이스의 가장 큰 차이입니다.
 //
 //   sqlite.tx(func: 옮기기(가, 나, 1000), db)
-func tx(함수, db):
-    val p = _쪽(db)
+func tx(fn, db):
+    val p = _handle(db)
     run("begin", db)
     try:
-        val 답 = 함수()
+        val result = fn()
         run("commit", db)
-        return 답
+        return result
     catch e:
         run("rollback", db)
         error(e.type, e.message)
@@ -231,15 +227,15 @@ func tx(함수, db):
 
 // --- 있나 없나 --------------------------------------------------------------
 
-func hastable(이름, db):
-    val 줄 = one("select name from sqlite_master where type='table' and name=?", db, [이름])
-    return 줄 != none
+func hastable(name, db):
+    val row = one("select name from sqlite_master where type='table' and name=?", db, [name])
+    return row != none
 
 func tables(db):
-    val 나온것 = []
-    for 줄 in rows("select name from sqlite_master where type='table' order by name", db):
-        push(나온것, 줄["name"])
-    return 나온것
+    val out = []
+    for row in rows("select name from sqlite_master where type='table' order by name", db):
+        push(out, row["name"])
+    return out
 
 // SQLite 판 번호
 func version():

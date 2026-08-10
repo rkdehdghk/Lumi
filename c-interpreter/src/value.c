@@ -74,6 +74,8 @@ Value obj_val(void *o)
 }
 
 static Obj *g_gc_head = NULL;
+/* 마지막으로 치운 뒤로 늘어난 '남을 담을 수 있는 값'의 수.  LUMI_GC_CHECK 가 봅니다. */
+long lumi_gc_pending = 0;
 
 static Obj *obj_alloc(size_t size, VKind kind)
 {
@@ -88,6 +90,7 @@ static Obj *obj_alloc(size_t size, VKind kind)
         o->gc_next = g_gc_head;
         if (g_gc_head) g_gc_head->gc_prev = o;
         g_gc_head = o;
+        lumi_gc_pending++;
     }
     return o;
 }
@@ -119,6 +122,7 @@ static void obj_free(Obj *o)
         else if (g_gc_head == o) g_gc_head = o->gc_next;
         if (o->gc_next) o->gc_next->gc_prev = o->gc_prev;
         o->gc_tracked = false;
+        lumi_gc_pending--;          /* 참조 세기가 제때 없앤 것은 문턱에 안 셉니다 */
     }
 
     switch (o->kind) {
@@ -200,6 +204,7 @@ static void obj_free(Obj *o)
         free(t->args);
         release(t->result);
         if (t->in) {
+            gc_drop_interp(t->in);      /* 더는 뿌리로 삼지 않습니다 */
             env_release(t->in->globals);
             free(t->in->base_dir);
             free(t->in);
@@ -733,8 +738,13 @@ static void gc_restore_env(Env *e)
 
 static void gc_restore_reachable(Obj *o)
 {
-    if (o->gc_refs > 0) return;
-    o->gc_refs = 1;
+    /* 되돌아 도는 것을 막는 표시는 gc_visited 입니다.  예전에는 'gc_refs > 0 이면
+     * 그만' 이었는데, 밖에서 붙들려 있는 값은 처음부터 gc_refs 가 0 이 아니라서
+     * **그 속에 든 값을 한 번도 안 훑고** 지나갔습니다.  그래서 전역에 담아 둔
+     * [[1],[2],[3]] 이 gc() 한 번에 [[], [], []] 가 됐습니다. */
+    if (o->gc_visited) return;
+    o->gc_visited = true;
+    if (o->gc_refs <= 0) o->gc_refs = 1;
     switch (o->kind) {
     case V_LIST: case V_TUPLE: {
         Seq *s = (Seq *)o;
@@ -853,18 +863,51 @@ static void gc_clear_references(Obj *o)
     }
 }
 
+/* --- 살아 있는 인터프리터 사슬 -------------------------------------------
+ * 일감(start)마다 저마다의 Interp 가 있고, 저마다의 C 스택에 살아 있는 환경이
+ * 있습니다.  큰 자물쇠 덕분에 Lumi 코드는 한 번에 하나만 돌지만, **멈춰 있는**
+ * 일감의 지역 값도 여전히 살아 있는 값입니다.  그래서 치울 때는 전부 훑습니다. */
+static Interp *g_interps = NULL;
+
+void gc_add_interp(Interp *in)
+{
+    if (!in) return;
+    in->next_interp = g_interps;
+    g_interps = in;
+}
+
+void gc_drop_interp(Interp *in)
+{
+    if (!in) return;
+    for (Interp **p = &g_interps; *p; p = &(*p)->next_interp) {
+        if (*p == in) { *p = in->next_interp; in->next_interp = NULL; return; }
+    }
+}
+
+/* 한 인터프리터가 붙들고 있는 것들을 '살아 있다'고 표시합니다.
+ * 전역 + 지금 열려 있는 이름 자리들 (SCOPE_ENTER 가 엮어 둔 사슬).
+ * gc_restore_env 가 부모까지 따라가므로 안쪽 자리 하나만 알려 주면 됩니다. */
+static void gc_restore_interp(Interp *in)
+{
+    if (!in) return;
+    if (in->globals) gc_restore_env(in->globals);
+    for (ScopeGuard *s = in->top_scope; s; s = s->prev) gc_restore_env(s->env);
+}
+
 size_t gc_collect(Interp *in)
 {
     for (Obj *curr = g_gc_head; curr; curr = curr->gc_next) {
         curr->gc_refs = curr->rc;
+        curr->gc_visited = false;
     }
 
     for (Obj *curr = g_gc_head; curr; curr = curr->gc_next) {
         gc_traverse_children(curr);
     }
 
-    if (in && in->globals) {
-        gc_restore_env(in->globals);
+    gc_restore_interp(in);
+    for (Interp *o = g_interps; o; o = o->next_interp) {
+        if (o != in) gc_restore_interp(o);
     }
 
     for (Obj *curr = g_gc_head; curr; curr = curr->gc_next) {
@@ -907,8 +950,22 @@ size_t gc_collect(Interp *in)
     }
 
     free(dead);
+    lumi_gc_pending = 0;
     return dead_len;
 }
+
+/* --- 저절로 치우기 ---------------------------------------------------------
+ * 참조 세기만으로는 서로를 붙든 값(순환 참조)이 영영 안 없어집니다.  예전에는
+ * 사람이 gc() 를 불러야만 치웠고, 그래서 오래 도는 프로그램은 그냥 샜습니다
+ * (순환 100 만 개 = 795MB).  이제는 만든 개수를 세다가 한 번씩 치웁니다.
+ *
+ * 문턱은 '새로 만든 그릇 - 없앤 그릇'입니다.  순환이 없으면 참조 세기가 그때그때
+ * 없애 주어 이 수가 안 늘고, 그러면 수집기는 아예 안 돕니다.  순환이 쌓일 때만
+ * 값을 치릅니다.  파이썬의 세대별 수집기와 같은 생각이고, 세대는 안 나눴습니다
+ * (ponytail: 한 세대로 충분한지 재 보고 모자라면 그때 나누세요).
+ *
+ * 검사(LUMI_GC_CHECK)는 lumi.h 에 매크로로 두었습니다 — 문장마다 함수를 부르게
+ * 했더니 그것만으로 10% 가 느려졌습니다. */
 
 /* ---------------- 환경 ---------------- */
 

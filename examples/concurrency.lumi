@@ -1,70 +1,72 @@
 // 따로 도는 일감 - start() 로 띄우고 wait() 로 받습니다.
 //
 // Lumi 코드는 한 번에 하나씩만 돕니다. 대신 **기다리는 일**(sleep, shell,
-// 그리고 shell 을 거치는 http)에서는 자리를 내주기 때문에 기다림이 겹칩니다.
-// 그게 이 기능의 쓸모입니다.
+// shell 을 거치는 http, 그리고 http.serve 가 손님을 기다릴 때)에서는 자리를
+// 내주기 때문에 기다림이 겹칩니다. 그게 이 기능의 쓸모입니다.
 
-func 배송조회(번호, 기다림):
-    sleep(기다림)
-    return "주문 " + 번호 + ": 배송 준비"
+func track(code, delay):
+    sleep(delay)
+    return "주문 " + code + ": 배송 준비"
 
 print("=== 1. 배송을 함께 조회합니다 ===")
 
-val 첫째 = start(배송조회, "A-12", 0.03)
-val 둘째 = start(배송조회, "B-34", 0.01)
+val first = start(track, "A-12", 0.03)
+val second = start(track, "B-34", 0.01)
 
 // 먼저 끝난 순서가 아니라, 내가 기다린 순서로 결과를 받습니다.
-print(wait(첫째))
-print(wait(둘째))
+print(wait(first))
+print(wait(second))
 
 print("")
 print("=== 2. 하나씩 vs 따로따로 ===")
 
-val 잠깐 = 0.15
+val pause = 0.15
 
 // 하나씩 - 셋을 차례로 기다립니다
-val 시작1 = clock()
-배송조회("C-1", 잠깐)
-배송조회("C-2", 잠깐)
-배송조회("C-3", 잠깐)
-val 하나씩 = clock() - 시작1
+val t1 = clock()
+track("C-1", pause)
+track("C-2", pause)
+track("C-3", pause)
+val serial_time = clock() - t1
 
 // 따로따로 - 셋을 한꺼번에 띄워 놓고 나중에 받습니다
-val 시작2 = clock()
-val 일감들 = [start(배송조회, "D-1", 잠깐), start(배송조회, "D-2", 잠깐),
-             start(배송조회, "D-3", 잠깐)]
-val 받은것 = []
-for 하나 in 일감들:
-    push(받은것, wait(하나))
-val 따로따로 = clock() - 시작2
+val t2 = clock()
+val jobs = [start(track, "D-1", pause), start(track, "D-2", pause),
+             start(track, "D-3", pause)]
+val got = []
+for one in jobs:
+    push(got, wait(one))
+val parallel_time = clock() - t2
 
-print("받은 개수: " + str(len(받은것)))
-print("따로 돌린 쪽이 더 빠른가: " + str(따로따로 < 하나씩))
+print("받은 개수: " + str(len(got)))
+print("따로 돌린 쪽이 더 빠른가: " + str(parallel_time < serial_time))
 
 print("")
 print("=== 3. 같은 일감을 다시 기다려도 됩니다 ===")
 
-func 더하기(a, b):
+func plus(a, b):
     return a + b
 
-val 셈 = start(더하기, 3, 4)
-print(wait(셈))
-print(wait(셈))          // 다시 돌지 않고, 받아 둔 값을 그대로 줍니다
+val calc = start(plus, 3, 4)
+print(wait(calc))
+print(wait(calc))          // 다시 돌지 않고, 받아 둔 값을 그대로 줍니다
 
 print("")
 print("=== 4. 일감의 오류도 잡을 수 있습니다 ===")
 
-func 잘못된조회():
+func bad_track():
     error("NetworkError", "조회 서버에 닿지 못했습니다")
 
-val 실패한일 = start(잘못된조회)
+val failed = start(bad_track)
 try:
-    wait(실패한일)
+    wait(failed)
 catch NetworkError e:
     print("잡음: " + e.type + " / " + e.message)
 
 print("")
 print("=== 5. 알아 둘 것 ===")
 print("일감은 자기 지역 변수를 따로 쓰지만 전역 변수는 함께 씁니다.")
-print("자리를 바꾸는 곳이 sleep 과 shell 뿐이라, 그 사이의 줄들은 끊기지 않습니다.")
+print("자리를 바꾸는 곳은 기다리는 자리뿐이라, 그 사이의 줄들은 끊기지 않습니다.")
+print("http.serve 도 손님을 기다리는 동안 자리를 내줍니다 - 서버를 일감으로 띄워 두고")
+print("본 실에서 다른 일을 해도 됩니다.")
 print("셈만 하는 일감은 빨라지지 않습니다 - 기다리는 일이 있을 때 쓰세요.")

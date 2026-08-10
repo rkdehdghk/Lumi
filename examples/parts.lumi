@@ -28,21 +28,21 @@ print(join(" > ", "abc"))               // a > b > c     문자열도 시퀀스�
 
 print("")
 print("=== 둘은 서로 반대예요 ===")
-val 줄 = "김,이,박"
-print(split(",", 줄))                   // ["김", "이", "박"]
-print(join(",", split(",", 줄)))        // 김,이,박      되돌아옴
-print(join(",", split(",", 줄)) == 줄)  // true
+val line = "김,이,박"
+print(split(",", line))                   // ["김", "이", "박"]
+print(join(",", split(",", line)))        // 김,이,박      되돌아옴
+print(join(",", split(",", line)) == line)  // true
 
 print("")
 print("=== 조각 개수는 구분자 개수보다 하나 많아요 ===")
-print(incount(",", 줄), len(split(",", 줄)))   // 2 3
+print(incount(",", line), len(split(",", line)))   // 2 3
 
 print("")
 print("=== 나눠서 하나씩 쓰기 ===")
-val 이름들 = split(",", 줄)
-print(len(이름들), "명")
-for 이름 in 이름들:
-    print("-", 이름)
+val names = split(",", line)
+print(len(names), "명")
+for name in names:
+    print("-", name)
 
 print("")
 print("=== 바꾸기 (replace) ===")
@@ -59,32 +59,32 @@ print(replace("-", "", "010-1234-5678"))  // 01012345678
 
 print("")
 print("=== 바뀐 개수는 찾은 개수와 같아요 ===")
-val 글 = "a b c"
-print(incount(" ", 글))                 // 2
-print(replace(" ", "_", 글))            // a_b_c
-print(글)                               // a b c        원본은 그대로
+val chars = "a b c"
+print(incount(" ", chars))                 // 2
+print(replace(" ", "_", chars))            // a_b_c
+print(chars)                               // a b c        원본은 그대로
 
 print("")
 print("=== 같은 일을 두 가지 방법으로 ===")
-print(replace(" ", "-", 글))            // a-b-c
-print(join("-", split(" ", 글)))        // a-b-c        같은 결과
+print(replace(" ", "-", chars))            // a-b-c
+print(join("-", split(" ", chars)))        // a-b-c        같은 결과
 
 print("")
 print("=== 다른 문자열 함수와 함께 쓰기 ===")
-val 답 = " 3, 1, 2 "
-print(join("-", split(",", strip(답))))       // 3-1-2
+val joined = " 3, 1, 2 "
+print(join("-", split(",", strip(joined))))       // 3-1-2
 
 // 단어마다 첫 글자를 대문자로 바꿔서 다시 붙이기
-val 문장 = "hello lumi world"
-val 단어들 = []
-for 단어 in split(문장):
-    push(단어들, upper(0, 단어))
-print(join(" ", 단어들))                       // Hello Lumi World
+val sentence = "hello lumi world"
+val words = []
+for word in split(sentence):
+    push(words, upper(0, word))
+print(join(" ", words))                       // Hello Lumi World
 
 print("")
 print("=== 표 만들기 ===")
 // 줄 하나를 나눠서 다시 다른 모양으로 붙일 수 있습니다.
-val 자료 = "이름:루미,나이:1,언어:Lumi"
-for 칸 in split(",", 자료):
-    val 짝 = split(":", 칸)
-    print(짝[0], "->", 짝[1])
+val data = "이름:루미,나이:1,언어:Lumi"
+for field in split(",", data):
+    val pair = split(":", field)
+    print(pair[0], "->", pair[1])

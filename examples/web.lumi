@@ -12,23 +12,23 @@
 bring http
 
 print("=== 1. 답이 어떻게 생겼나 ===")
-print("답 = { \"ok\": true, \"코드\": 200, \"본문\": \"...\", \"머리말\": {...} }")
+print("답 = { \"ok\": true, \"code\": 200, \"body\": \"...\", \"headers\": {...} }")
 print("")
 print("규칙 두 가지:")
-print("  * 404 나 500 은 오류가 아닙니다 — 서버가 제대로 답한 것이라 \"코드\"로 옵니다.")
-print("    ok 는 코드가 200~299 일 때만 true 입니다.")
+print("  * 404 나 500 은 오류가 아닙니다 — 서버가 제대로 답한 것이라 \"code\" 로 옵니다.")
+print("    ok 는 code 가 200~299 일 때만 true 입니다.")
 print("  * 주소를 못 찾거나 연결이 끊기면 NetworkError 를 냅니다. try 로 잡으세요.")
 print("")
 
 
 print("=== 2. 가져오기 ===")
 try:
-    val 답 = http.get("https://example.com")
-    print("ok    :", 답["ok"])
-    print("코드  :", 답["코드"])
-    print("길이  :", len(답["본문"]))
-    print("종류  :", 답["머리말"]["content-type"])
-    print("제목  :", findmatch("<title>[^<]*</title>", 답["본문"]))
+    val res = http.get("https://example.com")
+    print("ok    :", res["ok"])
+    print("코드  :", res["code"])
+    print("길이  :", len(res["body"]))
+    print("종류  :", res["headers"]["content-type"])
+    print("제목  :", findmatch("<title>[^<]*</title>", res["body"]))
 catch NetworkError e:
     print("(인터넷이 없어 건너뜁니다)")
 print("")
@@ -36,8 +36,8 @@ print("")
 
 print("=== 3. 없는 길은 오류가 아니라 404 ===")
 try:
-    val 답 = http.get("https://example.com/이런길은없어요")
-    print("ok:", 답["ok"], "/ 코드:", 답["코드"], "  <- 던지지 않고 돌려줍니다")
+    val res = http.get("https://example.com/이런길은없어요")
+    print("ok:", res["ok"], "/ 코드:", res["code"], "  <- 던지지 않고 돌려줍니다")
 catch NetworkError e:
     print("(인터넷 없음)")
 print("")
@@ -64,14 +64,14 @@ print("")
 
 print("=== 6. 작은 웹 서버 ===")
 // 처리 함수는 요청 딕셔너리를 받아 답 딕셔너리를 돌려줍니다.
-func 처리(요청):
-    // 요청 = {"방법":"GET", "길":"/인사", "물음":{"이름":"루미"}, "머리말":{...}, "본문":"..."}
-    if 요청["길"] == "/인사":
-        val 이름 = "누구세요"
-        if has(요청["물음"], "이름"):
-            이름 = 요청["물음"]["이름"]
-        return {"코드": 200, "본문": "안녕 " + 이름}
-    return {"코드": 404, "본문": "그런 길은 없습니다"}
+func handle(req):
+    // req = {"method":"GET", "path":"/인사", "query":{"이름":"루미"}, "headers":{...}, "body":"..."}
+    if req["path"] == "/인사":
+        val name = "누구세요"
+        if has(req["query"], "이름"):
+            name = req["query"]["이름"]
+        return {"code": 200, "body": "안녕 " + name}
+    return {"code": 404, "body": "그런 길은 없습니다"}
 
 print("이렇게 적고:")
 print("  http.serve(8080, 처리)        멈출 때까지 계속 (Ctrl+C 로 끕니다)")

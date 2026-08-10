@@ -39,6 +39,13 @@ static LUMI_TLS bool g_execution_locked = false;
 
 bool lumi_gil_is_held(void) { return g_execution_locked; }
 
+/* 운영체제를 기다리는 동안에는 큰 자물쇠를 놓습니다 — 그동안 다른 일감이 Lumi 코드를
+ * 돌립니다.  놓았다 다시 잡는 사이에서는 **Lumi 값을 만지면 안 됩니다** (참조 세기와
+ * 순환 수집기가 자물쇠 안에서만 안전합니다).  거기서 해도 되는 것은 malloc·free 와
+ * 운영체제 부르기뿐입니다.  쓰는 곳: sleep · shell · 웹서버의 accept/recv/send. */
+#define GIL_RELEASE() do { g_execution_locked = false; plat_gil_unlock(); } while (0)
+#define GIL_ACQUIRE() do { plat_gil_lock(); g_execution_locked = true; } while (0)
+
 /* 경로에서 파일 이름만 (트레이스를 짧게 유지합니다) */
 static const char *base_name_of(const char *path)
 {
@@ -210,7 +217,16 @@ static void check_dict_key(Interp *in, Value key, int line);
 static Value lumi_json_parse(Interp *in, Value input, int line);
 static Value lumi_json_stringify(Interp *in, Value v, int line);
 
-#define MAX_DEPTH 2000
+/* 한 곳에서만 정합니다 — 예전엔 lumi.h 와 여기 둘로 적혀 있었습니다 */
+#define MAX_DEPTH LUMI_MAX_DEPTH
+
+/* 새 이름 자리를 열 때마다 수집기에게 '여기 살아 있다'고 알려 둡니다.
+ * 한 블록에 하나씩만 씁니다 (이름이 고정이라 두 번 쓰면 컴파일러가 잡아 줍니다).
+ * 오류로 뛰어넘어 가면 SCOPE_LEAVE 가 건너뛰어지는데, 그건 exec_try_stmt 가
+ * top_scope 를 통째로 되돌려 놓습니다 — top_handler 와 같은 방식입니다. */
+#define SCOPE_ENTER(in, e) \
+    ScopeGuard _scope = { (e), (in)->top_scope }; (in)->top_scope = &_scope
+#define SCOPE_LEAVE(in)    ((in)->top_scope = _scope.prev)
 
 /* ============================================================
  * 2. 값 보기 (to_str / repr / type)
@@ -1721,7 +1737,11 @@ static Value invoke_function_kw(Interp *in, Func *fn, Value *args, size_t nargs,
     /* 부르는 쪽 겹에 '지금 이 줄에서 불렀다'를 적어 두고, 새 겹을 하나 쌓습니다. */
     in->frames[in->depth].line = line;
     if (++in->depth > MAX_DEPTH) {
-        in->depth = 0;
+        /* 깊이를 0 으로 되돌리지 않습니다.  되돌리면 이 오류를 catch 로 잡았을 때
+         * 인터프리터가 '지금 맨 바깥' 이라고 잘못 알아, 이미 쌓여 있는 C 스택 위로
+         * 다시 MAX_DEPTH 만큼 파고들어 진짜로 스택이 터졌습니다.
+         * 깊이는 try 가 원래대로 돌려놓습니다 (exec_try_stmt 의 saved_depth). */
+        in->depth--;
         lumi_error(line, "too much recursion (a function keeps calling itself)");
     }
     in->frames[in->depth].fn_name = fn->node->name;
@@ -1729,6 +1749,7 @@ static Value invoke_function_kw(Interp *in, Func *fn, Value *args, size_t nargs,
     in->frames[in->depth].line    = line;
 
     Env *local = env_new(fn->closure);
+    SCOPE_ENTER(in, local);
     if (this_) {
         env_declare(local, "this", retain(obj_val(this_)), NULL);
         SuperRef *sr = super_new(owner && owner->parent ? owner->parent : NULL, this_);
@@ -1749,6 +1770,7 @@ static Value invoke_function_kw(Interp *in, Func *fn, Value *args, size_t nargs,
 
     Value ret = NONE_VAL;
     Flow flow = run_block(in, &fn->node->body, local, &ret);
+    SCOPE_LEAVE(in);
     env_release(local);
     in->depth--;
     if (fn->node->ret_type) {
@@ -1978,12 +2000,14 @@ void define_class(Interp *in, ClassDefNode *cd, Env *env, int line)
 
     /* 공유 값은 작은 환경에서 한 번 만들어 클래스로 옮깁니다 */
     Env *field_env = env_new(env);
+    SCOPE_ENTER(in, field_env);
     Value ret = NONE_VAL;
     for (size_t i = 0; i < cd->fields.len; i++)
         exec_node(in, cd->fields.items[i], field_env, &ret);
     for (size_t i = 0; i < field_env->len; i++)
         env_declare(cls->vars, field_env->slots[i].name,
                     retain(field_env->slots[i].val), field_env->slots[i].type);
+    SCOPE_LEAVE(in);
     env_release(field_env);
 
     env_declare(env, cd->name, obj_val(cls), NULL);
@@ -2409,6 +2433,7 @@ static Value eval_binop(Interp *in, Node *n, Env *env)
 static Value eval_forr(Interp *in, Node *n, Env *env)
 {
     Env *loop = env_new(env);
+    SCOPE_ENTER(in, loop);
     Value ret = NONE_VAL;
     exec_node(in, n->v.forr.init, loop, &ret);
     Seq *out = seq_new(V_LIST);
@@ -2437,6 +2462,7 @@ static Value eval_forr(Interp *in, Node *n, Env *env)
         seq_push(out, v);
         exec_node(in, n->v.forr.step, loop, &ret);
     }
+    SCOPE_LEAVE(in);
     env_release(loop);
     return obj_val(out);
 }
@@ -2605,6 +2631,7 @@ static Value eval(Interp *in, Node *n, Env *env)
         Seq *out_seq = seq_new(V_LIST);
         for (size_t i = 0; i < items->len; i++) {
             Env *loop = env_new(env);
+            SCOPE_ENTER(in, loop);
             env_declare(loop, n->v.list_comp.var_name, retain(items->items[i]), NULL);
             bool keep = true;
             if (n->v.list_comp.cond) {
@@ -2616,6 +2643,7 @@ static Value eval(Interp *in, Node *n, Env *env)
                 Value res = eval(in, n->v.list_comp.expr, loop);
                 seq_push(out_seq, res);
             }
+            SCOPE_LEAVE(in);
             env_release(loop);
         }
         release(obj_val(items));
@@ -2629,6 +2657,7 @@ static Value eval(Interp *in, Node *n, Env *env)
         Dict *out_dict = dict_new();
         for (size_t i = 0; i < items->len; i++) {
             Env *loop = env_new(env);
+            SCOPE_ENTER(in, loop);
             env_declare(loop, n->v.dict_comp.var_name, retain(items->items[i]), NULL);
             bool keep = true;
             if (n->v.dict_comp.cond) {
@@ -2641,6 +2670,7 @@ static Value eval(Interp *in, Node *n, Env *env)
                 Value v = eval(in, n->v.dict_comp.val_expr, loop);
                 dict_set(out_dict, k, v);
             }
+            SCOPE_LEAVE(in);
             env_release(loop);
         }
         release(obj_val(items));
@@ -2683,6 +2713,9 @@ static Flow run_block(Interp *in, NodeList *body, Env *env, Value *ret)
     for (size_t i = 0; i < body->len; i++) {
         Flow f = exec_node(in, body->items[i], env, ret);
         if (f != FLOW_NORMAL) return f;
+        /* 문장 하나가 끝난 자리 — 임시 값이 다 정리된 안전한 때라, 순환 참조를
+         * 치우기에 알맞습니다.  쌓인 게 없으면 셈 하나 보고 곧장 지나갑니다. */
+        LUMI_GC_CHECK(in);
     }
     return FLOW_NORMAL;
 }
@@ -2691,6 +2724,129 @@ static Flow run_block(Interp *in, NodeList *body, Env *env, Value *ret)
 LUMI_TLS DebugHook lumi_debug_hook = NULL;
 
 Value lumi_eval_expr(Interp *in, Node *n, Env *env) { return eval(in, n, env); }
+
+/* error("메시지") / error(Type, "메시지")
+ * exec_node 에서 떼어 둔 갈래입니다 — 여기 있는 버퍼 2KB 가 exec_node 안에 있으면
+ * 오류를 안 내는 문장까지 겹마다 그만큼을 쌓습니다. LUMI_NOINLINE 설명은 lumi.h 참고. */
+static LUMI_NOINLINE void exec_error_stmt(Interp *in, Node *n, Env *env)
+{
+    g_current_interp = in;
+    char *type_str = NULL;
+    char *msg_str = NULL;
+
+    if (n->v.error_.type_expr) {
+        Value tv = eval(in, n->v.error_.type_expr, env);
+        type_str = value_to_utf8(in, tv);
+        release(tv);
+    }
+    if (n->v.error_.msg_expr) {
+        Value mv = eval(in, n->v.error_.msg_expr, env);
+        msg_str = value_to_utf8(in, mv);
+        release(mv);
+    }
+
+    /* 종류는 오류 값에 따로 담깁니다 (메시지 안에 섞지 않습니다).
+     * 그래야 catch 가 글자를 뒤지지 않고 종류로 골라 잡습니다. */
+    char kind[64];
+    snprintf(kind, sizeof(kind), "%s", type_str && *type_str ? type_str : "Error");
+    char body[1900];
+    snprintf(body, sizeof(body), "%s", msg_str && *msg_str ? msg_str : "error occurred");
+    free(type_str);
+    free(msg_str);
+    lumi_error_kind(n->line, kind, "%s", body);
+}
+
+/* try / safe / catch / always
+ * setjmp 로 '되돌아올 자리'를 만들어 두고 try 블록을 돌립니다.  그 안에서
+ * lumi_error 가 나면 longjmp 로 여기(else 쪽)로 뛰어 옵니다.
+ *   - 오류가 없었으면 safe 를 잇달아 돌리고,
+ *   - 오류가 났으면 catch 를 앞에서부터 살펴 맞는 것 하나만 돌립니다.
+ *   - always 는 어느 쪽이든 마지막에 한 번 돌립니다.
+ * 이것도 exec_node 에서 떼어 둔 갈래입니다 (jmp_buf 와 버퍼 4KB).  longjmp 는
+ * 그대로 동작합니다 — 뛰어올 때 이 함수는 아직 스택에 살아 있습니다. */
+/* 오류가 나서 뛰어온 뒤에 하는 일 — 맞는 catch 를 찾아 돌립니다.
+ * exec_try_stmt 에서 또 떼어 둔 까닭: 여기 있는 버퍼 2KB 가 try 문 자리에 붙어 있으면
+ * try 를 품은 함수는 재귀 한 겹마다 그만큼을 더 씁니다 (오류가 안 나도 마찬가지입니다). */
+static LUMI_NOINLINE Flow run_catches(Interp *in, Node *n, Env *env, Value *ret)
+{
+    Flow flow = FLOW_NORMAL;
+    int saved_line = lumi_err_line;
+    char saved_kind[64], saved_bare[1900];
+    snprintf(saved_kind, sizeof(saved_kind), "%s", lumi_err_kind);
+    snprintf(saved_bare, sizeof(saved_bare), "%s", lumi_err_bare);
+    const char *saved_file = in->frames[in->depth <= LUMI_MAX_DEPTH
+                                        ? in->depth : LUMI_MAX_DEPTH].file;
+
+    bool caught = false;
+    for (size_t i = 0; i < n->v.try_.ncatches; i++) {
+        struct CatchClause *cc = &n->v.try_.catches[i];
+        /* 종류를 적었으면 그 종류(또는 그 아래 갈래)일 때만 잡습니다.
+         * 메시지 글자를 뒤지던 예전 방식과 달리 우연히 맞는 일이 없습니다. */
+        if (cc->type_name != NULL && !error_kind_is(saved_kind, cc->type_name))
+            continue;
+        caught = true;
+        Env *catch_env = env_new(env);
+        SCOPE_ENTER(in, catch_env);
+        if (cc->var_name != NULL) {
+            ErrorObj *eo = error_new(saved_kind, saved_bare, saved_line, saved_file);
+            env_declare(catch_env, cc->var_name, obj_val(eo), NULL);
+        }
+        flow = run_block(in, &cc->body, catch_env, ret);
+        SCOPE_LEAVE(in);
+        env_release(catch_env);
+        break;
+    }
+
+    if (!caught) {
+        /* 아무 catch 도 못 잡았으면 always 를 먼저 돌리고 바깥으로 올립니다. */
+        if (n->v.try_.has_always) {
+            run_block(in, &n->v.try_.always_body, env, ret);
+        }
+        lumi_error_kind(saved_line, saved_kind, "%s", saved_bare);
+    }
+    return flow;
+}
+
+static LUMI_NOINLINE Flow exec_try_stmt(Interp *in, Node *n, Env *env, Value *ret)
+{
+    g_current_interp = in;
+    TryHandler handler;
+    handler.prev = in->top_handler;
+    in->top_handler = &handler;
+
+    /* flow 는 setjmp 를 건너뛰어 살아남아야 하므로 volatile 입니다. */
+    volatile Flow flow = FLOW_NORMAL;
+    /* longjmp 로 뛰어오면 사이에 있던 함수들의 'in->depth--' 가 건너뛰어집니다.
+     * 그래서 여기서 원래 깊이를 적어 두었다가 되돌립니다 — 안 그러면 오류를 한 번
+     * 잡을 때마다 깊이가 부풀어, 멀쩡한 재귀가 'too much recursion' 을 만납니다. */
+    const int saved_depth = in->depth;
+    /* 환경 사슬도 같은 까닭으로 되돌립니다 — 뛰어넘어 온 SCOPE_LEAVE 들이
+     * 실행되지 않아 사슬에 죽은 자리가 남아 있습니다. */
+    ScopeGuard *const saved_scope = in->top_scope;
+
+    if (setjmp(handler.jmp) == 0) {
+        flow = run_block(in, &n->v.try_.try_body, env, ret);
+        in->top_handler = handler.prev;
+
+        if (flow == FLOW_NORMAL && n->v.try_.has_safe) {
+            flow = run_block(in, &n->v.try_.safe_body, env, ret);
+        }
+    } else {
+        in->top_handler = handler.prev;
+        in->depth = saved_depth;
+        in->top_scope = saved_scope;
+        flow = run_catches(in, n, env, ret);
+    }
+
+    if (n->v.try_.has_always) {
+        Flow always_flow = run_block(in, &n->v.try_.always_body, env, ret);
+        if (always_flow != FLOW_NORMAL) {
+            flow = always_flow;
+        }
+    }
+
+    return flow;
+}
 
 Flow exec_node(Interp *in, Node *n, Env *env, Value *ret)
 {
@@ -2815,6 +2971,7 @@ Flow exec_node(Interp *in, Node *n, Env *env, Value *ret)
 
     case N_FORC: {
         Env *loop = env_new(env);
+        SCOPE_ENTER(in, loop);
         exec_node(in, n->v.forc.init, loop, ret);
         for (;;) {
             Value c = eval(in, n->v.forc.cond, loop);
@@ -2823,6 +2980,7 @@ Flow exec_node(Interp *in, Node *n, Env *env, Value *ret)
             if (!go) break;
             Flow f = run_block(in, &n->v.forc.body, loop, ret);
             if (f == FLOW_BREAK) break;
+            SCOPE_LEAVE(in);
             if (f == FLOW_RETURN) { env_release(loop); return f; }
             exec_node(in, n->v.forc.step, loop, ret);   /* continue 여도 증감은 합니다 */
         }
@@ -2838,8 +2996,10 @@ Flow exec_node(Interp *in, Node *n, Env *env, Value *ret)
         Flow result = FLOW_NORMAL;
         for (size_t i = 0; i < items->len; i++) {
             Env *loop = env_new(env);
+            SCOPE_ENTER(in, loop);
             env_declare(loop, n->v.forin.var_name, retain(items->items[i]), NULL);
             Flow f = run_block(in, &n->v.forin.body, loop, ret);
+            SCOPE_LEAVE(in);
             env_release(loop);
             if (f == FLOW_BREAK) break;
             if (f == FLOW_RETURN) { result = f; break; }
@@ -2861,8 +3021,10 @@ Flow exec_node(Interp *in, Node *n, Env *env, Value *ret)
                        s, n->v.use.var_name);
         }
         Env *inner = env_new(env);
+        SCOPE_ENTER(in, inner);
         env_declare(inner, n->v.use.var_name, retain(v), NULL);
         Flow f = run_block(in, &n->v.use.body, inner, ret);
+        SCOPE_LEAVE(in);
         env_release(inner);
         FileObj *fo = AS_FILE(v);
         if (fo->fp) { fclose(fo->fp); fo->fp = NULL; }
@@ -2954,10 +3116,17 @@ Flow exec_node(Interp *in, Node *n, Env *env, Value *ret)
         TryHandler handler;
         handler.prev = in->top_handler;
         in->top_handler = &handler;
+        /* 시험이 실패하면 여기로 뛰어옵니다 — 그 사이의 SCOPE_LEAVE 와 depth-- 가
+         * 건너뛰어지므로 try 와 똑같이 되돌려 놓습니다.  안 되돌리면 환경 사슬이
+         * 이미 사라진 스택 자리를 가리킨 채 남아, 다음 gc() 가 그것을 밟습니다. */
+        const int saved_depth = in->depth;
+        ScopeGuard *const saved_scope = in->top_scope;
 
         if (setjmp(handler.jmp) == 0) {
             Env *tenv = env_new(env);
+            SCOPE_ENTER(in, tenv);
             run_block(in, &n->v.test_.body, tenv, ret);
+            SCOPE_LEAVE(in);
             env_release(tenv);
             in->top_handler = handler.prev;
             char *msg = xsprintf("  ok   %s\n", n->v.test_.name);
@@ -2965,6 +3134,8 @@ Flow exec_node(Interp *in, Node *n, Env *env, Value *ret)
             free(msg);
         } else {
             in->top_handler = handler.prev;
+            in->depth = saved_depth;
+            in->top_scope = saved_scope;
             in->tests_failed++;
             char *msg = xsprintf("  FAIL %s\n         %s\n",
                                  n->v.test_.name, lumi_err_msg);
@@ -2975,105 +3146,12 @@ Flow exec_node(Interp *in, Node *n, Env *env, Value *ret)
         return FLOW_NORMAL;
     }
 
-    case N_ERROR: {
-        g_current_interp = in;
-        char *type_str = NULL;
-        char *msg_str = NULL;
-
-        if (n->v.error_.type_expr) {
-            Value tv = eval(in, n->v.error_.type_expr, env);
-            type_str = value_to_utf8(in, tv);
-            release(tv);
-        }
-        if (n->v.error_.msg_expr) {
-            Value mv = eval(in, n->v.error_.msg_expr, env);
-            msg_str = value_to_utf8(in, mv);
-            release(mv);
-        }
-
-        /* 종류는 오류 값에 따로 담깁니다 (메시지 안에 섞지 않습니다).
-         * 그래야 catch 가 글자를 뒤지지 않고 종류로 골라 잡습니다. */
-        char kind[64];
-        snprintf(kind, sizeof(kind), "%s", type_str && *type_str ? type_str : "Error");
-        char body[1900];
-        snprintf(body, sizeof(body), "%s", msg_str && *msg_str ? msg_str : "error occurred");
-        free(type_str);
-        free(msg_str);
-        lumi_error_kind(n->line, kind, "%s", body);
+    case N_ERROR:
+        exec_error_stmt(in, n, env);
         return FLOW_NORMAL;
-    }
 
-    /* try / safe / catch / always
-     * setjmp 로 '되돌아올 자리'를 만들어 두고 try 블록을 돌립니다.  그 안에서
-     * lumi_error 가 나면 longjmp 로 여기(else 쪽)로 뛰어 옵니다.
-     *   - 오류가 없었으면 safe 를 잇달아 돌리고,
-     *   - 오류가 났으면 catch 를 앞에서부터 살펴 맞는 것 하나만 돌립니다.
-     *   - always 는 어느 쪽이든 마지막에 한 번 돌립니다.
-     * ponytail: 타입 가리기는 메시지 안에 그 이름이 들어 있는지 보는
-     * 문자열 검사입니다. 진짜 오류 객체가 필요해지면 그때 바꾸세요. */
-    case N_TRY: {
-        g_current_interp = in;
-        TryHandler handler;
-        handler.prev = in->top_handler;
-        in->top_handler = &handler;
-
-        Flow flow = FLOW_NORMAL;
-        char saved_msg[2048];
-        int saved_line = NO_LINE;
-
-        if (setjmp(handler.jmp) == 0) {
-            flow = run_block(in, &n->v.try_.try_body, env, ret);
-            in->top_handler = handler.prev;
-
-            if (flow == FLOW_NORMAL && n->v.try_.has_safe) {
-                flow = run_block(in, &n->v.try_.safe_body, env, ret);
-            }
-        } else {
-            in->top_handler = handler.prev;
-            snprintf(saved_msg, sizeof(saved_msg), "%s", lumi_err_msg);
-            saved_line = lumi_err_line;
-            char saved_kind[64], saved_bare[1900];
-            snprintf(saved_kind, sizeof(saved_kind), "%s", lumi_err_kind);
-            snprintf(saved_bare, sizeof(saved_bare), "%s", lumi_err_bare);
-            const char *saved_file = in->frames[in->depth <= LUMI_MAX_DEPTH
-                                                ? in->depth : LUMI_MAX_DEPTH].file;
-
-            bool caught = false;
-            for (size_t i = 0; i < n->v.try_.ncatches; i++) {
-                struct CatchClause *cc = &n->v.try_.catches[i];
-                /* 종류를 적었으면 그 종류(또는 그 아래 갈래)일 때만 잡습니다.
-                 * 메시지 글자를 뒤지던 예전 방식과 달리 우연히 맞는 일이 없습니다. */
-                if (cc->type_name != NULL && !error_kind_is(saved_kind, cc->type_name))
-                    continue;
-                caught = true;
-                Env *catch_env = env_new(env);
-                if (cc->var_name != NULL) {
-                    ErrorObj *eo = error_new(saved_kind, saved_bare, saved_line, saved_file);
-                    env_declare(catch_env, cc->var_name, obj_val(eo), NULL);
-                }
-                flow = run_block(in, &cc->body, catch_env, ret);
-                env_release(catch_env);
-                break;
-            }
-
-            if (!caught) {
-                /* 아무 catch 도 못 잡았으면 always 를 먼저 돌리고 바깥으로 올립니다. */
-                if (n->v.try_.has_always) {
-                    run_block(in, &n->v.try_.always_body, env, ret);
-                }
-                lumi_error_kind(saved_line, saved_kind, "%s", saved_bare);
-            }
-        }
-
-        if (n->v.try_.has_always) {
-            Flow always_flow = run_block(in, &n->v.try_.always_body, env, ret);
-            if (always_flow != FLOW_NORMAL) {
-                flow = always_flow;
-            }
-        }
-
-        return flow;
-    }
+    case N_TRY:
+        return exec_try_stmt(in, n, env, ret);
 
     default: {
         Value v = eval(in, n, env);
@@ -3140,6 +3218,8 @@ Interp *interp_new(OutputFn out, InputFn input, const char *base_dir)
     in->globals = env_new(NULL);
     in->base_dir = base_dir ? xstrdup(base_dir) : NULL;
     in->start_clock = lumi_time_clock();
+    /* 순환 수집기가 이 인터프리터의 살아 있는 값들도 뿌리로 삼도록 알려 둡니다 */
+    gc_add_interp(in);
 
     /* Register built-in 'json' library module */
     Module *json_mod = module_new("json", env_new(NULL));
@@ -3166,6 +3246,11 @@ void interp_run(Interp *in, const char *source)
     plat_gil_lock();
     g_execution_locked = true;
     g_current_interp = in;
+    /* 앞서 돌린 파일이 오류로 맨 위까지 뛰어올랐다면 사슬에 죽은 자리가 남아
+     * 있습니다 (lumi test 는 인터프리터 하나로 여러 파일을 돌립니다). */
+    in->top_scope = NULL;
+    in->top_handler = NULL;
+    in->depth = 0;
     TokenList *tokens = tokenize(source);
     NodeList program = parse_program(tokens);
     tokenlist_free(tokens);
@@ -3490,6 +3575,10 @@ static void *task_main(void *arg)
         t->args = NULL;
         t->nargs = 0;
         t->result = result;
+        /* 위와 같은 까닭 — 실이 끝나면 그 스택의 이름 자리는 뿌리가 아닙니다. */
+        t->in->top_scope = NULL;
+        t->in->top_handler = NULL;
+        t->in->depth = 0;
     } else {
         /* raise_error 가 맨 위 오류일 때 이미 큰 자물쇠를 놓습니다. */
         plat_gil_lock();
@@ -3501,6 +3590,11 @@ static void *task_main(void *arg)
         t->err_line = lumi_err_line;
         snprintf(t->err, sizeof t->err, "%s", lumi_err_bare);
         snprintf(t->kind, sizeof t->kind, "%s", lumi_err_kind);
+        /* 이 실의 C 스택은 곧 사라집니다 — 거기 걸려 있던 이름 자리들을 뿌리 목록에서
+         * 지웁니다.  안 지우면 나중에 도는 수집기가 사라진 스택을 밟습니다. */
+        t->in->top_scope = NULL;
+        t->in->top_handler = NULL;
+        t->in->depth = 0;
         release(obj_val(t));        /* start 가 든든히 쥐어 둔 자기 참조 */
         g_execution_locked = false;
         plat_gil_unlock();
@@ -3538,6 +3632,7 @@ static Value task_start(Interp *in, Value fn, Value *args, size_t nargs, int lin
     if (!t->thread) {
         t->args = NULL; t->nargs = 0;
         release(t->fn); t->fn = NONE_VAL;
+        gc_drop_interp(t->in);
         env_release(t->in->globals); free(t->in->base_dir); free(t->in); t->in = NULL;
         free(args);
         release(obj_val(t));

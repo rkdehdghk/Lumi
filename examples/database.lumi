@@ -8,7 +8,7 @@
 //
 // SQLite 가 없는 컴퓨터에서도 이 예제는 끝까지 돕니다 — 없으면 건너뜁니다.
 
-func 있나():
+func probe():
     try:
         bring sqlite
         return true
@@ -17,7 +17,7 @@ func 있나():
 
 // SQLite 가 없는 컴퓨터에서는 여기서 끝냅니다.
 // (Lumi 에는 맨 바깥에서 쓰는 return 이 없어서, 본문을 if 안에 둡니다)
-if not 있나():
+if not probe():
     print("이 컴퓨터에는 SQLite 가 없어 건너뜁니다.")
     print("윈도우 10 이상·맥에는 기본으로 있고, 리눅스는 libsqlite3 을 깔면 됩니다.")
 else:
@@ -62,8 +62,8 @@ else:
 
 
     print("=== 4. 찾기 ===")
-    for 줄 in sqlite.rows("select 이름, 나이, 키 from 손님 where 나이 >= ? order by 나이", db, [3]):
-        print("  ", 줄["이름"], "/", 줄["나이"], "살 /", 줄["키"], "m")
+    for row in sqlite.rows("select 이름, 나이, 키 from 손님 where 나이 >= ? order by 나이", db, [3]):
+        print("  ", row["이름"], "/", row["나이"], "살 /", row["키"], "m")
     print("")
     print("모두 몇 명:", sqlite.value("select count(*) from 손님", db))
     print("나이 합계  :", sqlite.value("select sum(나이) from 손님", db))
@@ -77,22 +77,22 @@ else:
     sqlite.run("insert into 통장 values('가', 1000)", db)
     sqlite.run("insert into 통장 values('나', 0)", db)
 
-    func 옮기기(얼마):
-        sqlite.run("update 통장 set 돈 = 돈 - ? where 이름 = '가'", db, [얼마])
+    func transfer(amount):
+        sqlite.run("update 통장 set 돈 = 돈 - ? where 이름 = '가'", db, [amount])
         // 여기서 프로그램이 터진다고 해 봅시다
-        if 얼마 > 500:
+        if amount > 500:
             error("ValueError", "한 번에 500 넘게는 못 옮깁니다")
-        sqlite.run("update 통장 set 돈 = 돈 + ? where 이름 = '나'", db, [얼마])
+        sqlite.run("update 통장 set 돈 = 돈 + ? where 이름 = '나'", db, [amount])
 
     try:
-        sqlite.tx(func: 옮기기(900), db)
+        sqlite.tx(func: transfer(900), db)
     catch e:
         print("실패:", e.message)
     print("가의 돈:", sqlite.value("select 돈 from 통장 where 이름 = '가'", db), " <- 안 줄었습니다")
     print("한 묶음 안에서 터지면 **하나도 안 한 것으로** 되돌립니다.")
     print("")
 
-    sqlite.tx(func: 옮기기(300), db)
+    sqlite.tx(func: transfer(300), db)
     print("300 옮긴 뒤 — 가:", sqlite.value("select 돈 from 통장 where 이름 = '가'", db),
           "/ 나:", sqlite.value("select 돈 from 통장 where 이름 = '나'", db))
     print("")
@@ -102,12 +102,12 @@ else:
     sqlite.run("create table 갖가지(i int, f real, s text, b blob, n int)", db)
     sqlite.run("insert into 갖가지 values(?, ?, ?, ?, ?)", db,
                [42, 3.14, "한글도 됩니다", encode("바이트"), none])
-    val 하나 = sqlite.one("select * from 갖가지", db)
-    print("  int  :", 하나["i"], type(하나["i"]))
-    print("  real :", 하나["f"], type(하나["f"]))
-    print("  text :", 하나["s"], type(하나["s"]))
-    print("  blob :", decode(하나["b"]), type(하나["b"]))
-    print("  null :", 하나["n"], type(하나["n"]))
+    val one = sqlite.one("select * from 갖가지", db)
+    print("  int  :", one["i"], type(one["i"]))
+    print("  real :", one["f"], type(one["f"]))
+    print("  text :", one["s"], type(one["s"]))
+    print("  blob :", decode(one["b"]), type(one["b"]))
+    print("  null :", one["n"], type(one["n"]))
     print("")
 
     sqlite.close(db)

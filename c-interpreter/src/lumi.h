@@ -25,7 +25,7 @@
 
 /* 이 언어의 판 번호.  적는 곳은 여기 하나뿐입니다 (예전에 셋으로 흩어져 있었습니다).
  * 0.x 인 동안은 문법이 바뀔 수 있습니다 — 규칙은 docs/Lumi_Language_Spec.md 19장. */
-#define LUMI_VERSION "0.9.0"
+#define LUMI_VERSION "0.9.1"
 
 typedef enum {
     V_NONE, V_BOOL, V_INT, V_FLOAT,          /* 그 자리에 담는 값 */
@@ -45,6 +45,17 @@ typedef enum {
 #  define LUMI_TLS __thread
 #endif
 
+/* 붙여 넣지 말라고 컴파일러에게 이르는 표시.
+ * 재귀를 타는 함수(exec_node / eval_call)는 갈래마다의 지역 변수를 **한 칸에 모아**
+ * 잡습니다 — 안 쓰는 갈래의 버퍼까지 겹마다 쌓입니다.  그래서 큰 버퍼를 쓰는 갈래를
+ * 따로 떼어 두는데, 한 번만 부르는 함수라 그냥 두면 컴파일러가 도로 붙여 버립니다.
+ * 자세한 것은 docs/Lumi_Changes.md 의 '재귀 깊이' 항목에 적어 두었습니다. */
+#if defined(_MSC_VER)
+#  define LUMI_NOINLINE __declspec(noinline)
+#else
+#  define LUMI_NOINLINE __attribute__((noinline))
+#endif
+
 typedef struct Obj {
     int rc;
     VKind kind;
@@ -52,6 +63,10 @@ typedef struct Obj {
     struct Obj *gc_prev;
     int gc_refs;
     bool gc_tracked;
+    bool gc_visited;   /* 이번 수집에서 '살아 있다'고 훑고 지나갔는가.
+                        * gc_refs 로 대신하면 안 됩니다 — 밖에서 붙들려 있는 값은
+                        * 처음부터 gc_refs 가 0 이 아니라서, 그것을 '이미 봤다'로
+                        * 읽으면 그 **속에 든 값들을 안 훑고** 지나갑니다. */
 } Obj;
 
 typedef struct Value {
@@ -425,6 +440,15 @@ typedef struct TryHandler {
     struct TryHandler *prev;
 } TryHandler;
 
+/* 지금 살아 있는 이름 자리(환경) 하나.  C 스택을 따라 사슬로 엮입니다.
+ * 순환 수집기가 이 사슬을 '뿌리'로 삼습니다 — 이것이 없으면 실행 중인 함수의
+ * 지역 값이 아무도 안 쓰는 값으로 보여 수집기가 그것을 치워 버립니다
+ * (실제로 그랬습니다: docs/Lumi_Changes.md 의 '순환 수집기' 항목). */
+typedef struct ScopeGuard {
+    Env *env;
+    struct ScopeGuard *prev;
+} ScopeGuard;
+
 /* 호출 한 겹. 오류가 났을 때 '어디서 어떻게 왔는지'를 되짚는 데 씁니다.
  *   fn_name  불려 온 함수 이름 (맨 바깥 = NULL, 즉 파일 본문)
  *   file     그 함수가 적혀 있는 파일
@@ -437,7 +461,17 @@ typedef struct CallFrame {
                          * 세지 않는(약한) 참조입니다: 살아 있는 겹만 들여다봅니다. */
 } CallFrame;
 
-#define LUMI_MAX_DEPTH 2000
+/* 재귀 깊이 한도.  이 수를 넘으면 'too much recursion' 오류가 납니다 — **잡을 수 있는
+ * 오류**이지, 프로세스가 죽는 것이 아닙니다.  그 약속을 지키려면
+ *     한도 × (한 겹이 쓰는 C 스택) < 실제 스택 (윈도우 /STACK 8MB, 리눅스·맥 ulimit 8MB)
+ * 이어야 합니다.  재어 본 값: 그냥 재귀 3.3KB, try 를 품은 재귀 5.6KB, 거기에 내장
+ * 함수를 거치면 6.0KB.  1000 × 6.0KB = 6MB 로 2MB 가 남습니다.
+ * (파이썬의 기본 한도도 1000 입니다.)
+ *
+ * 겹의 크기를 어떻게 재는지, 왜 예전에 460 겹에서 소리 없이 죽었는지는
+ * docs/Lumi_Changes.md 의 '재귀 깊이' 항목에 적어 두었습니다.
+ * 겹이 다시 뚱뚱해지면 이 수를 같이 내려야 합니다. */
+#define LUMI_MAX_DEPTH 1000
 
 typedef struct Interp {
     OutputFn output;
@@ -453,6 +487,8 @@ typedef struct Interp {
     CallFrame frames[LUMI_MAX_DEPTH + 1];
     double   start_clock;          /* 인터프리터 시작 시각 */
     TryHandler *top_handler;       /* 활성화된 try-catch 에러 핸들러 스택 */
+    ScopeGuard *top_scope;         /* 지금 살아 있는 환경들 (순환 수집기의 뿌리) */
+    struct Interp *next_interp;    /* 살아 있는 인터프리터 사슬 — 일감마다 하나씩입니다 */
     char   **argv;                 /* 프로그램에 넘어온 명령행 인자 (sys.args) */
     size_t   argc;
     bool     testing;              /* lumi test 로 돌고 있습니까? */
@@ -546,7 +582,20 @@ char *xsprintf(const char *fmt, ...);
 char *fmt_double(double d);      /* 파이썬 repr 처럼: 되돌려 읽히는 가장 짧은 표기 */
 bool  key_equal(Value a, Value b);
 uint32_t value_hash(Value v);
+/* 순환 참조 치우기.  살아 있는 인터프리터 전부(일감 포함)의 전역·호출 겹·환경 사슬을
+ * 뿌리로 삼습니다.  돌려주는 값은 치운 개수입니다. */
 size_t gc_collect(Interp *in);
+/* 저절로 치우기.  마지막으로 치운 뒤 늘어난 '남을 담을 수 있는 값'의 수가
+ * 문턱을 넘으면 문장 사이에서 한 번 돕니다.  세는 값을 밖으로 내놓은 까닭은
+ * 검사가 **부르는 자리에서 바로** 끝나야 하기 때문입니다 — 문장마다 함수를 부르면
+ * 그것만으로 10% 가 느려졌습니다 (재 봤습니다). */
+extern long lumi_gc_pending;
+#define LUMI_GC_THRESHOLD 20000
+#define LUMI_GC_CHECK(in) \
+    do { if (lumi_gc_pending >= LUMI_GC_THRESHOLD) gc_collect(in); } while (0)
+/* 살아 있는 인터프리터 사슬 (interp_new 가 넣고, 일감이 끝나면 뺍니다) */
+void   gc_add_interp(Interp *in);
+void   gc_drop_interp(Interp *in);
 void *xmalloc(size_t n);
 void *xrealloc(void *p, size_t n);
 char *xstrdup(const char *s);

@@ -58,23 +58,23 @@ print(e)                            // ["라", "마"]
 print("")
 print("=== 찾아서 지우기 ===")
 // 값으로 지우고 싶으면 infind 로 자리를 찾아서 넘기면 됩니다.
-val 점수 = [70, 0, 85, 0, 90]
-erase(infind(0, 점수), 점수)          // 0 인 자리를 모두 찾아 지우기
-print(점수)                          // [70, 85, 90]
+val scores = [70, 0, 85, 0, 90]
+erase(infind(0, scores), scores)          // 0 인 자리를 모두 찾아 지우기
+print(scores)                          // [70, 85, 90]
 
 print("")
 print("=== 지운 값이 필요하면 먼저 꺼내 두세요 ===")
 // erase 는 '개수' 를 돌려주므로, 값이 필요하면 지우기 전에 읽습니다.
 val f = ["가", "나", "다"]
-val 뺀것 = f[1]
+val removed = f[1]
 erase(1, f)
-print(뺀것)                          // 나
+print(removed)                          // 나
 print(f)                            // ["가", "다"]
 
 print("")
 print("=== 못 고치는 값은 슬라이싱으로 ===")
 // 문자열과 튜플은 한 번 만들면 못 고칩니다. 새로 만들어야 합니다.
-val 글 = "abcde"
-print(글[0:2] + 글[3:])              // abde   3번 자리를 뺀 새 문자열
-val 튜플 = (1, 2, 3)
-print(튜플[0:1] + (9,) + 튜플[1:])    // (1, 9, 2, 3)
+val letters = "abcde"
+print(letters[0:2] + letters[3:])              // abde   3번 자리를 뺀 새 문자열
+val tup = (1, 2, 3)
+print(tup[0:1] + (9,) + tup[1:])    // (1, 9, 2, 3)

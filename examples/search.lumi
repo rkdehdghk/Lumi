@@ -7,50 +7,50 @@
 // 자리 번호는 0부터 셉니다. 그래서 시퀀스[자리] 로 다시 꺼낼 수 있어요.
 
 print("=== 글자 세기 / 찾기 ===")
-val 말 = "hello world"
-print(말)
-print("l 은 몇 개?", incount("l", 말))          // 3
-print("l 은 어디에?", infind("l", 말))          // [2, 3, 9]
-print("o 는 어디에?", infind("o", 말))          // [4, 7]
-print("z 는 몇 개?", incount("z", 말))          // 0
-print("z 는 어디에?", infind("z", 말))          // []
+val phrase = "hello world"
+print(phrase)
+print("l 은 몇 개?", incount("l", phrase))          // 3
+print("l 은 어디에?", infind("l", phrase))          // [2, 3, 9]
+print("o 는 어디에?", infind("o", phrase))          // [4, 7]
+print("z 는 몇 개?", incount("z", phrase))          // 0
+print("z 는 어디에?", infind("z", phrase))          // []
 
 print("")
 print("=== 한 글자가 아니라 '여러 글자'도 찾을 수 있어요 ===")
-val 노래 = "도레미 도레미 도레"
-print("'도레' 개수:", incount("도레", 노래))     // 3
-print("'도레' 자리:", infind("도레", 노래))      // [0, 4, 8]
-print("'도레미' 개수:", incount("도레미", 노래)) // 2
+val song = "도레미 도레미 도레"
+print("'도레' 개수:", incount("도레", song))     // 3
+print("'도레' 자리:", infind("도레", song))      // [0, 4, 8]
+print("'도레미' 개수:", incount("도레미", song)) // 2
 
 print("")
 print("=== 리스트에서 찾기 ===")
-val 점수 = [10, 20, 10, 30, 10]
-print("10 은 몇 개?", incount(10, 점수))        // 3
-print("10 은 어디에?", infind(10, 점수))        // [0, 2, 4]
-print("맨 처음 자리:", infind(10, 점수)[0])     // 0
+val scores = [10, 20, 10, 30, 10]
+print("10 은 몇 개?", incount(10, scores))        // 3
+print("10 은 어디에?", infind(10, scores))        // [0, 2, 4]
+print("맨 처음 자리:", infind(10, scores)[0])     // 0
 
 print("")
 print("=== 튜플에서 찾기 ===")
-val 요일 = ("월", "화", "수", "목", "금")
-print("'수' 자리:", infind("수", 요일))          // [2]
+val days = ("월", "화", "수", "목", "금")
+print("'수' 자리:", infind("수", days))          // [2]
 
 print("")
 print("=== 개수와 자리는 언제나 짝이 맞아요 ===")
 // infind 가 돌려준 리스트의 길이는 incount 와 항상 같습니다.
-print(incount("l", 말), len(infind("l", 말)))   // 3 3
+print(incount("l", phrase), len(infind("l", phrase)))   // 3 3
 
 print("")
 print("=== 없을 때 확인하기 ===")
-val 찾은자리 = infind("x", 말)
-if len(찾은자리) == 0:
+val found = infind("x", phrase)
+if len(found) == 0:
     print("x 는 없어요")
 else:
-    print("x 는 여기 있어요:", 찾은자리)
+    print("x 는 여기 있어요:", found)
 
 print("")
 print("=== 모든 자리를 하나씩 보기 ===")
-for 자리 in infind("l", 말):
-    print("자리", 자리, "->", 말[자리])
+for pos in infind("l", phrase):
+    print("자리", pos, "->", phrase[pos])
 
 print("")
 print("=== 자리와 값을 한꺼번에: inpair ===")
@@ -58,8 +58,8 @@ print("=== 자리와 값을 한꺼번에: inpair ===")
 print(inpair(["가", "나", "다"]))                // [[0, "가"], [1, "나"], [2, "다"]]
 print(inpair("hi"))                              // [[0, "h"], [1, "i"]]
 
-for 짝 in inpair(["가", "나", "다"]):
-    print(짝[0], "번째는", 짝[1])
+for pair in inpair(["가", "나", "다"]):
+    print(pair[0], "번째는", pair[1])
 
 print("")
 print("=== 모양 고르기 (list / tuple / dict) ===")
@@ -75,13 +75,13 @@ print(inpair(tuple, "hi"))                       // ((0, "h"), (1, "i"))
 
 print("")
 print("=== 딕셔너리는 [키, 값] 짝 ===")
-val 나이 = {"민수": 12, "영희": 13}
-print(inpair(나이))                              // [["민수", 12], ["영희", 13]]
-print(inpair(dict, 나이))                        // 다시 딕셔너리로 (복사본)
+val ages = {"민수": 12, "영희": 13}
+print(inpair(ages))                              // [["민수", 12], ["영희", 13]]
+print(inpair(dict, ages))                        // 다시 딕셔너리로 (복사본)
 
 print("")
 print("=== 짝은 언제나 시퀀스 길이만큼 ===")
-print(len(inpair(말)) == len(말))                // true
+print(len(inpair(phrase)) == len(phrase))                // true
 
 print("")
 print("=== insor 와 짝지으면: 자리를 잃지 않는 정렬 ===")

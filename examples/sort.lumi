@@ -15,8 +15,8 @@ print(sort(false, [3, 1, 2]))       // [3, 2, 1]
 print(sort([2.5, 1, 10]))           // [1, 2.5, 10]   정수와 소수가 섞여도 OK
 
 // 방향은 참/거짓이면 되므로, 변수나 식을 그대로 넣어도 됩니다
-val 작은것부터 = false
-print(sort(작은것부터, [1, 3, 2]))    // [3, 2, 1]
+val ascending = false
+print(sort(ascending, [1, 3, 2]))    // [3, 2, 1]
 print(sort(1 < 2, [3, 1, 2]))       // [1, 2, 3]   식의 결과(true)를 그대로
 
 print("")
@@ -67,39 +67,39 @@ print(sort([10, 9]))                        // [9, 10]      수로 적으면 크
 
 print("")
 print("=== 자주 쓰는 모양 ===")
-val 점수 = [78, 92, 85, 60]
-print(sort(점수)[0])                          // 60    가장 작은 값
-print(sort(false, 점수)[0])                   // 92    가장 큰 값
+val scores = [78, 92, 85, 60]
+print(sort(scores)[0])                          // 60    가장 작은 값
+print(sort(false, scores)[0])                   // 92    가장 큰 값
 print(sort(split("바나나 사과 포도")))          // ["바나나", "사과", "포도"]
 print(join(", ", sort(["다", "가", "나"])))    // 가, 나, 다
 print(sort(keys({"b": 1, "a": 2})))          // ["a", "b"]   딕셔너리 키 정렬
 
 // 애너그램(글자 구성이 같은지) 확인
-func 같은글자(a, b):
+func samecase(a, b):
     return sort(list(a)) == sort(list(b))
 
-print(같은글자("listen", "silent"))    // true
-print(같은글자("hello", "world"))      // false
+print(samecase("listen", "silent"))    // true
+print(samecase("hello", "world"))      // false
 
 // 등수 매기기
 print("")
 print("=== 등수 매기기 ===")
-val 순위 = sort(false, 점수)
-for i in forr(val n = 0, n < len(순위), n = n + 1):
-    print(i + 1, "등:", 순위[i])
+val ranked = sort(false, scores)
+for i in forr(val n = 0, n < len(ranked), n = n + 1):
+    print(i + 1, "등:", ranked[i])
 
 print("")
 print("=== 기준 자리로 정렬 (insor) ===")
 // sort 는 값 전체를 견주지만, insor 는 '속의 한 자리'만 기준으로 삼습니다.
 //   insor(기준자리, 시퀀스)        -> 그 자리 값이 작은 것부터
 //   insor(방향, 기준자리, 시퀀스)  -> 방향까지 정해서
-val 성적표 = [["김", 90], ["박", 70], ["이", 80]]
+val report = [["김", 90], ["박", 70], ["이", 80]]
 
-print(insor(1, 성적표))         // [["박", 70], ["이", 80], ["김", 90]]   점수 낮은 순
-print(insor(false, 1, 성적표))  // [["김", 90], ["이", 80], ["박", 70]]   점수 높은 순
-print(insor(0, 성적표))         // [["김", 90], ["박", 70], ["이", 80]]   이름 가나다 순
-print(insor(-1, 성적표))        // [["박", 70], ["이", 80], ["김", 90]]   음수는 뒤에서부터
-print(성적표)                   // 원본은 그대로!
+print(insor(1, report))         // [["박", 70], ["이", 80], ["김", 90]]   점수 낮은 순
+print(insor(false, 1, report))  // [["김", 90], ["이", 80], ["박", 70]]   점수 높은 순
+print(insor(0, report))         // [["김", 90], ["박", 70], ["이", 80]]   이름 가나다 순
+print(insor(-1, report))        // [["박", 70], ["이", 80], ["김", 90]]   음수는 뒤에서부터
+print(report)                   // 원본은 그대로!
 
 // 기준 자리 값만 견주므로 나머지 칸에는 무엇이 들어 있어도 됩니다
 print(insor(1, [["가", 2, "x"], ["나", 1, "y"]]))   // [["나", 1, "y"], ["가", 2, "x"]]
@@ -113,9 +113,9 @@ print(insor(1, [[1, 5], [2, 5], [3, 1]]))  // [[3, 1], [1, 5], [2, 5]]
 
 // 등수표 만들기
 print("")
-val 순위표 = insor(false, 1, 성적표)
-for i in forr(val n = 0, n < len(순위표), n = n + 1):
-    print(i + 1, "등:", 순위표[i][0], 순위표[i][1], "점")
+val ranktable = insor(false, 1, report)
+for i in forr(val n = 0, n < len(ranktable), n = n + 1):
+    print(i + 1, "등:", ranktable[i][0], ranktable[i][1], "점")
 
 // print(insor(1, [["a"], ["b", 2]]))   // Error: 첫 항목에는 1번 자리가 없음
 // print(insor(1, [1, 2]))              // Error: 항목이 시퀀스여야 함
