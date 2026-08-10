@@ -1,0 +1,18 @@
+// tests/lsp/session.txt 가 이 파일을 열어 두고 자리를 묻습니다.
+// 줄과 칸이 골든에 박히니 **줄을 함부로 옮기지 마세요** (옮겼으면 make_session.py 다시).
+bring math up sqrt
+
+val limit = 10
+
+func area(width, height):
+    return width * height
+
+func report(width):
+    val total = area(width, limit)
+    return total + sqrt(width)
+
+class Box:
+    func init(size):
+        this.size = size
+
+print(area(2, 3), report(4), Box(1).size)

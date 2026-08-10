@@ -9,6 +9,9 @@
  *   2) 자동완성            — 내장 낱말(lumiwords.h) + 그 파일이 만든 func/class/val
  *   3) 마우스 올렸을 때 설명 — 내장 낱말의 쓰는 형식
  *   4) 파일 안 목록        — func / class 를 훑어 보여 줍니다
+ *   5) 정의로 가기 (F12)    — 그 이름을 만든 자리로
+ *   6) 쓴 곳 모두 (Shift+F12)
+ *   7) 이름 바꾸기 (F2)     — 만드는 자리가 딱 하나일 때만 (아래 find_spots 참고)
  *
  * 주고받는 글은 LSP 규칙대로 "Content-Length: N\r\n\r\n{json}" 입니다.
  * JSON 은 인터프리터가 이미 갖고 있는 것을 그대로 씁니다 (또 만들지 않습니다).
@@ -360,6 +363,105 @@ static char *word_at(const char *text, long line, long ch)
     return w;
 }
 
+/* ============================================================
+ * 이름이 나오는 자리 찾기 (정의로 가기 · 참조 찾기 · 이름 바꾸기)
+ * ============================================================
+ *
+ * 토큰을 훑어서 찾습니다.  AST 를 쓰지 않는 까닭은 노드가 **줄만 알고 칸을
+ * 모르기** 때문입니다 — 편집기에 자리를 짚어 주려면 칸이 있어야 합니다.
+ * 토큰은 렉서가 줄과 칸을 둘 다 적어 둡니다.
+ *
+ * 자리를 따지지 않습니다 (lint 의 L9 와 같은 태도).  그래서 참조 찾기는
+ * '같은 이름이 나오는 곳 전부'입니다.  읽기만 하는 기능이라 넉넉해도 해가
+ * 없지만, **이름 바꾸기는 다릅니다** — 잘못 바꾸면 코드가 망가집니다.
+ * 그래서 이름을 **만드는 자리가 딱 하나일 때만** 바꿔 줍니다 (아래 rename).
+ */
+
+typedef struct { long line, col, len; bool is_decl; } Spot;
+
+/* 이 토큰이 이름을 **만드는** 자리인가.  prev 는 바로 앞의 토큰입니다. */
+static bool decl_after(const Token *prev, bool in_params)
+{
+    if (in_params) return true;                  /* func f(여기, 여기) */
+    if (!prev) return false;
+    if (prev->kind == T_KEYWORD) {
+        const char *k = prev->text;
+        return !strcmp(k, "func") || !strcmp(k, "class") || !strcmp(k, "val")
+            || !strcmp(k, "global") || !strcmp(k, "local") || !strcmp(k, "for")
+            || !strcmp(k, "use") || !strcmp(k, "up") || !strcmp(k, "catch");
+    }
+    /* int x = 1 / str 이름 = "..." 처럼 자료형을 앞에 적은 선언 */
+    if ((prev->kind == T_IDENT || prev->kind == T_KEYWORD) && prev->text
+        && is_type_name(prev->text))
+        return true;
+    return false;
+}
+
+/* name 이 나오는 자리를 모두 모읍니다.  못 읽는 파일이면 NULL. */
+static Spot *find_spots(const char *text, const char *name, size_t *out_n)
+{
+    *out_n = 0;
+    if (!text || !name) return NULL;
+
+    TokenList *toks = NULL;
+    jmp_buf saved;
+    memcpy(saved, lumi_jmp, sizeof saved);
+    if (setjmp(lumi_jmp) != 0) {                 /* 문법이 깨졌으면 조용히 포기 */
+        memcpy(lumi_jmp, saved, sizeof saved);
+        return NULL;
+    }
+    toks = tokenize(text);
+    memcpy(lumi_jmp, saved, sizeof saved);
+
+    size_t cap = 8, n = 0;
+    Spot *spots = (Spot *)xmalloc(cap * sizeof(Spot));
+
+    /* func 뒤 괄호 안이면 매개변수 자리입니다 */
+    bool saw_func = false, in_params = false;
+    int  depth = 0;
+    const Token *prev = NULL;
+
+    for (size_t i = 0; i < toks->len; i++) {
+        Token *t = &toks->items[i];
+        if (t->kind == T_KEYWORD && t->text && !strcmp(t->text, "func")) saw_func = true;
+        if (t->kind == T_OP && t->text) {
+            if (!strcmp(t->text, "(")) {
+                depth++;
+                if (saw_func && depth == 1) in_params = true;
+            } else if (!strcmp(t->text, ")")) {
+                if (depth > 0) depth--;
+                if (depth == 0) { in_params = false; saw_func = false; }
+            }
+        }
+        if (t->kind == T_NEWLINE) { saw_func = false; in_params = false; depth = 0; }
+
+        if (t->kind == T_IDENT && t->text && strcmp(t->text, name) == 0) {
+            /* 매개변수 자리라도 기본값 쪽(f(a = 여기))은 만드는 자리가 아닙니다 */
+            bool param_here = in_params && (!prev || (prev->kind == T_OP && prev->text
+                              && (!strcmp(prev->text, "(") || !strcmp(prev->text, ",")))
+                              || (prev->text && is_type_name(prev->text)));
+            if (n == cap) { cap *= 2; spots = (Spot *)xrealloc(spots, cap * sizeof(Spot)); }
+            spots[n].line = t->line > 0 ? t->line - 1 : 0;   /* LSP 는 0 부터 */
+            spots[n].col  = t->col;
+            spots[n].len  = (long)strlen(name);
+            spots[n].is_decl = decl_after(prev, param_here);
+            n++;
+        }
+        prev = t;
+    }
+    tokenlist_free(toks);
+    *out_n = n;
+    return spots;
+}
+
+static Value location_of(const char *uri, const Spot *s)
+{
+    Dict *loc = dict_new();
+    dict_put(loc, "uri", str_value(uri));
+    dict_put(loc, "range", range_of(s->line, s->col, s->col + s->len));
+    return obj_val(loc);
+}
+
 static Value make_hover(const char *text, long line, long ch)
 {
     char *w = word_at(text, line, ch);
@@ -420,6 +522,12 @@ static Value server_capabilities(void)
     dict_put(cap, "completionProvider", obj_val(comp));
     dict_put(cap, "hoverProvider", bool_val(true));
     dict_put(cap, "documentSymbolProvider", bool_val(true));
+    dict_put(cap, "definitionProvider", bool_val(true));
+    dict_put(cap, "referencesProvider", bool_val(true));
+    /* prepareProvider: 바꿀 수 없는 이름이면 편집기가 미리 막아 줍니다 */
+    Dict *ren = dict_new();
+    dict_put(ren, "prepareProvider", bool_val(true));
+    dict_put(cap, "renameProvider", obj_val(ren));
 
     Dict *info = dict_new();
     dict_put(info, "name", str_value("lumi-lsp"));
@@ -522,6 +630,80 @@ int run_lsp(void)
                                      obj_int(pos, "character", 0))
                         : NONE_VAL;
             send_result(id, h);
+            free(uo);
+
+        } else if (strcmp(method, "textDocument/definition") == 0
+                   || strcmp(method, "textDocument/references") == 0
+                   || strcmp(method, "textDocument/prepareRename") == 0
+                   || strcmp(method, "textDocument/rename") == 0) {
+            Value td = obj_get(params, "textDocument");
+            Value pos = obj_get(params, "position");
+            char *uo = NULL;
+            const char *uri = obj_str(td, "uri", &uo);
+            Doc *d = uri ? doc_find(uri) : NULL;
+            long pl = obj_int(pos, "line", 0), pc = obj_int(pos, "character", 0);
+            char *w = d ? word_at(d->text, pl, pc) : NULL;
+
+            size_t nsp = 0;
+            Spot *sp = w ? find_spots(d->text, w, &nsp) : NULL;
+            size_t ndecl = 0, first_decl = 0;
+            for (size_t k = 0; k < nsp; k++)
+                if (sp[k].is_decl) { if (!ndecl) first_decl = k; ndecl++; }
+
+            if (strcmp(method, "textDocument/definition") == 0) {
+                /* 만드는 자리가 여럿이면 전부 보여 주고 편집기가 고르게 합니다 */
+                if (!ndecl) send_result(id, NONE_VAL);
+                else if (ndecl == 1) send_result(id, location_of(uri, &sp[first_decl]));
+                else {
+                    Seq *out = seq_new(V_LIST);
+                    for (size_t k = 0; k < nsp; k++)
+                        if (sp[k].is_decl) seq_push(out, location_of(uri, &sp[k]));
+                    send_result(id, obj_val(out));
+                }
+
+            } else if (strcmp(method, "textDocument/references") == 0) {
+                Seq *out = seq_new(V_LIST);
+                for (size_t k = 0; k < nsp; k++) seq_push(out, location_of(uri, &sp[k]));
+                send_result(id, obj_val(out));
+
+            } else if (strcmp(method, "textDocument/prepareRename") == 0) {
+                /* 만드는 자리가 딱 하나일 때만 바꿔 줍니다.  둘 이상이면 어느 것을
+                 * 가리키는지 자리(scope)를 따져야 하는데, 여기서는 안 따집니다. */
+                if (ndecl == 1) {
+                    for (size_t k = 0; k < nsp; k++)
+                        if (sp[k].line == pl && pc >= sp[k].col && pc <= sp[k].col + sp[k].len) {
+                            send_result(id, range_of(sp[k].line, sp[k].col,
+                                                     sp[k].col + sp[k].len));
+                            goto rename_done;
+                        }
+                }
+                send_result(id, NONE_VAL);
+            rename_done: ;
+
+            } else {   /* textDocument/rename */
+                char *no = NULL;
+                const char *newname = obj_str(params, "newName", &no);
+                if (ndecl != 1 || !newname || !*newname) {
+                    send_result(id, NONE_VAL);
+                } else {
+                    Seq *edits = seq_new(V_LIST);
+                    for (size_t k = 0; k < nsp; k++) {
+                        Dict *e = dict_new();
+                        dict_put(e, "range", range_of(sp[k].line, sp[k].col,
+                                                      sp[k].col + sp[k].len));
+                        dict_put(e, "newText", str_value(newname));
+                        seq_push(edits, obj_val(e));
+                    }
+                    Dict *changes = dict_new();
+                    dict_put(changes, uri, obj_val(edits));
+                    Dict *we = dict_new();
+                    dict_put(we, "changes", obj_val(changes));
+                    send_result(id, obj_val(we));
+                }
+                free(no);
+            }
+            free(sp);
+            free(w);
             free(uo);
 
         } else if (strcmp(method, "textDocument/documentSymbol") == 0) {

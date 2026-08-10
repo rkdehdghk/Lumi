@@ -1,0 +1,29 @@
+Content-Length: 65
+
+{"jsonrpc": "2.0", "id": 1, "method": "initialize", "params": {}}Content-Length: 614
+
+{"jsonrpc": "2.0", "method": "textDocument/didOpen", "params": {"textDocument": {"uri": "file:///prog.lumi", "text": "// tests/lsp/session.txt 가 이 파일을 열어 두고 자리를 묻습니다.\n// 줄과 칸이 골든에 박히니 **줄을 함부로 옮기지 마세요** (옮겼으면 make_session.py 다시).\nbring math up sqrt\n\nval limit = 10\n\nfunc area(width, height):\n    return width * height\n\nfunc report(width):\n    val total = area(width, limit)\n    return total + sqrt(width)\n\nclass Box:\n    func init(size):\n        this.size = size\n\nprint(area(2, 3), report(4), Box(1).size)\n"}}}Content-Length: 166
+
+{"jsonrpc": "2.0", "id": 10, "method": "textDocument/definition", "params": {"textDocument": {"uri": "file:///prog.lumi"}, "position": {"line": 10, "character": 17}}}Content-Length: 207
+
+{"jsonrpc": "2.0", "id": 11, "method": "textDocument/references", "params": {"textDocument": {"uri": "file:///prog.lumi"}, "position": {"line": 10, "character": 17}, "context": {"includeDeclaration": true}}}Content-Length: 166
+
+{"jsonrpc": "2.0", "id": 12, "method": "textDocument/definition", "params": {"textDocument": {"uri": "file:///prog.lumi"}, "position": {"line": 10, "character": 29}}}Content-Length: 166
+
+{"jsonrpc": "2.0", "id": 13, "method": "textDocument/definition", "params": {"textDocument": {"uri": "file:///prog.lumi"}, "position": {"line": 17, "character": 30}}}Content-Length: 166
+
+{"jsonrpc": "2.0", "id": 14, "method": "textDocument/definition", "params": {"textDocument": {"uri": "file:///prog.lumi"}, "position": {"line": 11, "character": 21}}}Content-Length: 165
+
+{"jsonrpc": "2.0", "id": 15, "method": "textDocument/definition", "params": {"textDocument": {"uri": "file:///prog.lumi"}, "position": {"line": 17, "character": 2}}}Content-Length: 207
+
+{"jsonrpc": "2.0", "id": 16, "method": "textDocument/references", "params": {"textDocument": {"uri": "file:///prog.lumi"}, "position": {"line": 15, "character": 14}, "context": {"includeDeclaration": true}}}Content-Length: 169
+
+{"jsonrpc": "2.0", "id": 17, "method": "textDocument/prepareRename", "params": {"textDocument": {"uri": "file:///prog.lumi"}, "position": {"line": 10, "character": 17}}}Content-Length: 168
+
+{"jsonrpc": "2.0", "id": 18, "method": "textDocument/prepareRename", "params": {"textDocument": {"uri": "file:///prog.lumi"}, "position": {"line": 7, "character": 12}}}Content-Length: 181
+
+{"jsonrpc": "2.0", "id": 19, "method": "textDocument/rename", "params": {"textDocument": {"uri": "file:///prog.lumi"}, "position": {"line": 10, "character": 17}, "newName": "rect"}}Content-Length: 180
+
+{"jsonrpc": "2.0", "id": 20, "method": "textDocument/rename", "params": {"textDocument": {"uri": "file:///prog.lumi"}, "position": {"line": 7, "character": 12}, "newName": "rect"}}Content-Length: 64
+
+{"jsonrpc": "2.0", "id": 99, "method": "shutdown", "params": {}}
